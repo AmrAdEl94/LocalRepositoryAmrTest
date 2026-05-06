@@ -190,6 +190,13 @@
             gap: 8px;
             flex-wrap: wrap;
         }
+        .request-preview-section {
+            margin-top: 24px;
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 16px;
+        }
         .response-section {
             margin-top: 24px;
             background-color: #f8f9fa;
@@ -419,6 +426,23 @@
                                 <button id="saveApiBtn" class="btn btn-secondary">Save API</button>
                                 <button id="sendRequestBtn" class="btn btn-primary">Send Request</button>
                             </div>
+                            <div id="requestPreview" class="request-preview-section hidden">
+                                <h6>Request Preview</h6>
+                                <div class="response-group">
+                                    <strong>Method:</strong> <span id="previewMethod"></span>
+                                </div>
+                                <div class="response-group">
+                                    <strong>URL:</strong> <span id="previewUrl"></span>
+                                </div>
+                                <div class="response-group">
+                                    <strong>Headers:</strong>
+                                    <pre id="previewHeaders" class="code-block"></pre>
+                                </div>
+                                <div class="response-group">
+                                    <strong>Body:</strong>
+                                    <pre id="previewBody" class="code-block"></pre>
+                                </div>
+                            </div>
                             <div id="responsePanel" class="response-section hidden">
                                 <h6>Response</h6>
                                 <div class="response-group">
@@ -520,6 +544,7 @@
         const apiTableBody = document.querySelector('#apiTable tbody');
         const apiEditor = document.getElementById('apiEditor');
         const responsePanel = document.getElementById('responsePanel');
+        const requestPreview = document.getElementById('requestPreview');
         const apiNameInput = document.getElementById('apiName');
         const apiMethodInput = document.getElementById('apiMethod');
         const apiUrlInput = document.getElementById('apiUrl');
@@ -534,6 +559,10 @@
         const responseStatus = document.getElementById('responseStatus');
         const responseHeaders = document.getElementById('responseHeaders');
         const responseBody = document.getElementById('responseBody');
+        const previewMethod = document.getElementById('previewMethod');
+        const previewUrl = document.getElementById('previewUrl');
+        const previewHeaders = document.getElementById('previewHeaders');
+        const previewBody = document.getElementById('previewBody');
 
         const apiList = [
             {
@@ -593,6 +622,7 @@
             apiBodyInput.value = api.body;
             apiEditor.classList.remove('hidden');
             responsePanel.classList.add('hidden');
+            requestPreview.classList.add('hidden');
             updateBodyState();
         }
 
@@ -633,6 +663,7 @@
             responseHeaders.textContent = '';
             responseBody.textContent = '';
             responsePanel.classList.add('hidden');
+            requestPreview.classList.add('hidden');
         }
 
         function updateBodyState() {
@@ -707,6 +738,13 @@
                     }
                 }
             }
+
+            // Populate and show request preview
+            previewMethod.textContent = api.method;
+            previewUrl.textContent = requestUrl;
+            previewHeaders.textContent = formatHeadersObject(requestOptions.headers);
+            previewBody.textContent = requestOptions.body || '<empty body>';
+            requestPreview.classList.remove('hidden');
 
             try {
                 const response = await fetch(requestUrl, requestOptions);
