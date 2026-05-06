@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>WxCC Search API</title>
     <style>
         * {
             margin: 0;
@@ -124,6 +124,97 @@
         .hidden {
             display: none;
         }
+        .toolbar {
+            margin-bottom: 16px;
+        }
+        .btn {
+            border: 1px solid transparent;
+            border-radius: 5px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border-color: #6c757d;
+            margin-right: 8px;
+        }
+        .api-table-section {
+            margin-bottom: 20px;
+        }
+        .api-editor {
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
+        }
+        .form-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .field-row {
+            display: flex;
+            flex-direction: column;
+        }
+        .field-row label {
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .field-row input,
+        .field-row select,
+        .field-row textarea {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            width: 100%;
+            resize: vertical;
+        }
+        .field-row textarea {
+            min-height: 100px;
+        }
+        .url-row {
+            grid-column: span 2;
+        }
+        .body-row {
+            grid-column: span 2;
+        }
+        .editor-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .response-section {
+            margin-top: 24px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .response-group {
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+        .code-block {
+            background-color: #212529;
+            color: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 320px;
+        }
+        @media (max-width: 900px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -154,7 +245,7 @@
     <div class="main-content">
         <div class="header">
             <button class="toggle-btn" id="toggleBtn">☰</button>
-            <h1>Admin Dashboard</h1>
+            <h1>WxCC Search API</h1>
             <div></div>
         </div>
 
@@ -262,47 +353,90 @@
             <div id="content" class="page hidden">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">Content Management</h5>
+                        <h5 class="card-title">API Request Editor</h5>
                     </div>
                     <div class="card-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Title</th>
-                                    <th>Type</th>
-                                    <th>Author</th>
-                                    <th>Status</th>
-                                    <th>Views</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Welcome Post</td>
-                                    <td>Blog</td>
-                                    <td>Admin</td>
-                                    <td>Published</td>
-                                    <td>1500</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Product Update</td>
-                                    <td>News</td>
-                                    <td>Jane</td>
-                                    <td>Draft</td>
-                                    <td>0</td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Tutorial Video</td>
-                                    <td>Video</td>
-                                    <td>Bob</td>
-                                    <td>Published</td>
-                                    <td>2500</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="toolbar">
+                            <button id="newApiBtn" class="btn btn-primary">Add API</button>
+                        </div>
+                        <div class="api-table-section">
+                            <table id="apiTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Method</th>
+                                        <th>URL</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <div id="apiEditor" class="api-editor hidden">
+                            <h6>API Details</h6>
+                            <div class="form-grid">
+                                <div class="field-row">
+                                    <label for="apiName">Name</label>
+                                    <input id="apiName" type="text" placeholder="Example: Search Devices">
+                                </div>
+                                <div class="field-row">
+                                    <label for="apiMethod">Method</label>
+                                    <select id="apiMethod">
+                                        <option>GET</option>
+                                        <option>POST</option>
+                                        <option>PUT</option>
+                                        <option>PATCH</option>
+                                        <option>DELETE</option>
+                                    </select>
+                                </div>
+                                <div class="field-row url-row">
+                                    <label for="apiUrl">URL</label>
+                                    <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
+                                </div>
+                                <div class="field-row">
+                                    <label for="apiParams">Query Parameters</label>
+                                    <textarea id="apiParams" placeholder="JSON object or key=value lines"></textarea>
+                                </div>
+                                <div class="field-row">
+                                    <label for="apiHeaders">Headers</label>
+                                    <textarea id="apiHeaders" placeholder="JSON object or key=value lines"></textarea>
+                                </div>
+                                <div class="field-row">
+                                    <label for="apiBodyFormat">Body Type</label>
+                                    <select id="apiBodyFormat">
+                                        <option>JSON</option>
+                                        <option>XML</option>
+                                    </select>
+                                </div>
+                                <div class="field-row body-row">
+                                    <label for="apiBody">Body</label>
+                                    <textarea id="apiBody" placeholder="Request body in JSON or XML"></textarea>
+                                </div>
+                            </div>
+                            <div class="editor-actions">
+                                <button id="saveApiBtn" class="btn btn-secondary">Save API</button>
+                                <button id="sendRequestBtn" class="btn btn-primary">Send Request</button>
+                            </div>
+                            <div id="responsePanel" class="response-section hidden">
+                                <h6>Response</h6>
+                                <div class="response-group">
+                                    <strong>URL:</strong> <span id="responseUrl"></span>
+                                </div>
+                                <div class="response-group">
+                                    <strong>Status:</strong> <span id="responseStatus"></span>
+                                </div>
+                                <div class="response-group">
+                                    <strong>Headers:</strong>
+                                    <pre id="responseHeaders" class="code-block"></pre>
+                                </div>
+                                <div class="response-group">
+                                    <strong>Body:</strong>
+                                    <pre id="responseBody" class="code-block"></pre>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -382,6 +516,247 @@
                 document.getElementById(pageId).classList.remove('hidden');
             });
         });
+
+        const apiTableBody = document.querySelector('#apiTable tbody');
+        const apiEditor = document.getElementById('apiEditor');
+        const responsePanel = document.getElementById('responsePanel');
+        const apiNameInput = document.getElementById('apiName');
+        const apiMethodInput = document.getElementById('apiMethod');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const apiParamsInput = document.getElementById('apiParams');
+        const apiHeadersInput = document.getElementById('apiHeaders');
+        const apiBodyFormatInput = document.getElementById('apiBodyFormat');
+        const apiBodyInput = document.getElementById('apiBody');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+        const sendRequestBtn = document.getElementById('sendRequestBtn');
+        const newApiBtn = document.getElementById('newApiBtn');
+        const responseUrl = document.getElementById('responseUrl');
+        const responseStatus = document.getElementById('responseStatus');
+        const responseHeaders = document.getElementById('responseHeaders');
+        const responseBody = document.getElementById('responseBody');
+
+        const apiList = [
+            {
+                name: 'Search Devices',
+                method: 'GET',
+                url: 'https://api.example.com/v1/devices',
+                params: '{"status":"active","limit":10}',
+                headers: '{"Accept":"application/json"}',
+                bodyFormat: 'JSON',
+                body: '{"query":"sensor"}'
+            },
+            {
+                name: 'Create Ticket',
+                method: 'POST',
+                url: 'https://api.example.com/v1/tickets',
+                params: '',
+                headers: '{"Content-Type":"application/json"}',
+                bodyFormat: 'JSON',
+                body: '{"subject":"Device issue","description":"Details here"}'
+            }
+        ];
+
+        let currentApiIndex = null;
+
+        function renderApiTable() {
+            apiTableBody.innerHTML = '';
+            apiList.forEach((api, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${api.name || 'Untitled API'}</td>
+                    <td>${api.method}</td>
+                    <td>${api.url}</td>
+                    <td><button class="btn btn-secondary" data-index="${index}">Edit</button></td>
+                `;
+                apiTableBody.appendChild(row);
+            });
+
+            const editButtons = apiTableBody.querySelectorAll('button[data-index]');
+            editButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = Number(button.dataset.index);
+                    openApiEditor(index);
+                });
+            });
+        }
+
+        function openApiEditor(index) {
+            currentApiIndex = index;
+            const api = apiList[index];
+            apiNameInput.value = api.name;
+            apiMethodInput.value = api.method;
+            apiUrlInput.value = api.url;
+            apiParamsInput.value = api.params;
+            apiHeadersInput.value = api.headers;
+            apiBodyFormatInput.value = api.bodyFormat;
+            apiBodyInput.value = api.body;
+            apiEditor.classList.remove('hidden');
+            responsePanel.classList.add('hidden');
+            updateBodyState();
+        }
+
+        function parseKeyValueText(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return {};
+            try {
+                return JSON.parse(trimmed);
+            } catch (error) {
+                const lines = trimmed.split(/\r?\n/).filter(Boolean);
+                const result = {};
+                lines.forEach(line => {
+                    const separator = line.includes('=') ? '=' : ':';
+                    const [key, ...rest] = line.split(separator);
+                    if (key) {
+                        result[key.trim()] = rest.join(separator).trim();
+                    }
+                });
+                return result;
+            }
+        }
+
+        function buildQueryString(params) {
+            const entries = Object.entries(params).filter(([_, value]) => value !== undefined && value !== '');
+            if (!entries.length) return '';
+            return '?' + entries.map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value)).join('&');
+        }
+
+        function formatHeadersObject(headers) {
+            return Object.entries(headers)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join('\n');
+        }
+
+        function clearResponse() {
+            responseUrl.textContent = '';
+            responseStatus.textContent = '';
+            responseHeaders.textContent = '';
+            responseBody.textContent = '';
+            responsePanel.classList.add('hidden');
+        }
+
+        function updateBodyState() {
+            const method = apiMethodInput.value;
+            if (method === 'GET' || method === 'DELETE') {
+                apiBodyInput.disabled = true;
+                apiBodyInput.placeholder = 'Body is ignored for GET/DELETE requests';
+            } else {
+                apiBodyInput.disabled = false;
+                apiBodyInput.placeholder = 'Request body in JSON or XML';
+            }
+        }
+
+        function saveApi() {
+            const api = {
+                name: apiNameInput.value.trim() || 'Untitled API',
+                method: apiMethodInput.value,
+                url: apiUrlInput.value.trim(),
+                params: apiParamsInput.value.trim(),
+                headers: apiHeadersInput.value.trim(),
+                bodyFormat: apiBodyFormatInput.value,
+                body: apiBodyInput.value.trim()
+            };
+            if (currentApiIndex === null) {
+                apiList.push(api);
+                currentApiIndex = apiList.length - 1;
+            } else {
+                apiList[currentApiIndex] = api;
+            }
+            renderApiTable();
+            openApiEditor(currentApiIndex);
+        }
+
+        async function sendRequest() {
+            const api = {
+                name: apiNameInput.value.trim() || 'Untitled API',
+                method: apiMethodInput.value,
+                url: apiUrlInput.value.trim(),
+                params: apiParamsInput.value.trim(),
+                headers: apiHeadersInput.value.trim(),
+                bodyFormat: apiBodyFormatInput.value,
+                body: apiBodyInput.value.trim()
+            };
+
+            if (!api.url) {
+                alert('Enter a valid request URL.');
+                return;
+            }
+            clearResponse();
+
+            const paramsMap = parseKeyValueText(api.params);
+            const headersMap = parseKeyValueText(api.headers);
+            let requestUrl = api.url;
+            const query = buildQueryString(paramsMap);
+            if (query) {
+                requestUrl += requestUrl.includes('?') ? '&' + query.slice(1) : query;
+            }
+
+            const requestOptions = {
+                method: api.method,
+                headers: { ...headersMap }
+            };
+
+            if (api.method !== 'GET' && api.method !== 'DELETE') {
+                if (api.body) {
+                    if (api.bodyFormat === 'XML') {
+                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/xml';
+                        requestOptions.body = api.body;
+                    } else {
+                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/json';
+                        requestOptions.body = api.body;
+                    }
+                }
+            }
+
+            try {
+                const response = await fetch(requestUrl, requestOptions);
+                responseUrl.textContent = requestUrl;
+                responseStatus.textContent = `${response.status} ${response.statusText}`;
+                const responseHeadersList = {};
+                response.headers.forEach((value, key) => {
+                    responseHeadersList[key] = value;
+                });
+                responseHeaders.textContent = formatHeadersObject(responseHeadersList);
+
+                const contentType = response.headers.get('content-type') || '';
+                let bodyText = await response.text();
+                if (contentType.includes('application/json')) {
+                    try {
+                        bodyText = JSON.stringify(JSON.parse(bodyText), null, 2);
+                    } catch (error) {
+                        // keep raw text if JSON parse fails
+                    }
+                }
+                responseBody.textContent = bodyText || '<empty response>';
+                responsePanel.classList.remove('hidden');
+            } catch (error) {
+                responseUrl.textContent = requestUrl;
+                responseStatus.textContent = 'Request failed';
+                responseHeaders.textContent = '';
+                responseBody.textContent = error.message;
+                responsePanel.classList.remove('hidden');
+            }
+        }
+
+        newApiBtn.addEventListener('click', () => {
+            currentApiIndex = null;
+            apiNameInput.value = '';
+            apiMethodInput.value = 'GET';
+            apiUrlInput.value = '';
+            apiParamsInput.value = '';
+            apiHeadersInput.value = '';
+            apiBodyFormatInput.value = 'JSON';
+            apiBodyInput.value = '';
+            apiEditor.classList.remove('hidden');
+            responsePanel.classList.add('hidden');
+            updateBodyState();
+        });
+
+        apiMethodInput.addEventListener('change', updateBodyState);
+        saveApiBtn.addEventListener('click', saveApi);
+        sendRequestBtn.addEventListener('click', sendRequest);
+
+        renderApiTable();
     </script>
 </body>
 </html>
