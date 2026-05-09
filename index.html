@@ -425,6 +425,10 @@
                             <div class="editor-actions">
                                 <button id="saveApiBtn" class="btn btn-secondary">Save API</button>
                                 <button id="sendRequestBtn" class="btn btn-primary">Send Request</button>
+                                <label style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="useCorsProxy" style="width: 16px; height: 16px; cursor: pointer;">
+                                    <span style="cursor: pointer;">Use CORS Proxy (for testing)</span>
+                                </label>
                             </div>
                             <div id="requestPreview" class="request-preview-section hidden">
                                 <h6>Request Preview</h6>
@@ -555,6 +559,7 @@
         const saveApiBtn = document.getElementById('saveApiBtn');
         const sendRequestBtn = document.getElementById('sendRequestBtn');
         const newApiBtn = document.getElementById('newApiBtn');
+        const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
         const responseStatus = document.getElementById('responseStatus');
         const responseHeaders = document.getElementById('responseHeaders');
@@ -746,8 +751,15 @@
             previewBody.textContent = requestOptions.body || '<empty body>';
             requestPreview.classList.remove('hidden');
 
+            // Apply CORS proxy if enabled
+            let finalUrl = requestUrl;
+            if (useCorsProxy.checked) {
+                finalUrl = 'https://cors-anywhere.herokuapp.com/' + requestUrl;
+                console.log('Using CORS proxy. Note: If this fails, visit https://cors-anywhere.herokuapp.com/corsdemo in your browser to request temporary access.');
+            }
+
             try {
-                const response = await fetch(requestUrl, requestOptions);
+                const response = await fetch(finalUrl, requestOptions);
                 responseUrl.textContent = requestUrl;
                 responseStatus.textContent = `${response.status} ${response.statusText}`;
                 const responseHeadersList = {};
