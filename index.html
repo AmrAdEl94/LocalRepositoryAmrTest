@@ -571,13 +571,13 @@
 
         const apiList = [
             {
-                name: 'Search Devices',
+                name: 'Magento Order status API',
                 method: 'GET',
-                url: 'https://api.example.com/v1/devices',
-                params: '{"status":"active","limit":10}',
+                url: 'https://elarabystage.elaraby-staging.com/ar/rest/V1/whatsapp/orders',
+                params: '{"mobileNumber":"2001061461387"}',
                 headers: '{"Accept":"application/json"}',
-                bodyFormat: 'JSON',
-                body: '{"query":"sensor"}'
+                bodyFormat: '',
+                body: ''
             },
             {
                 name: 'Create Ticket',
