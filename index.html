@@ -493,9 +493,22 @@
                                     <label for="apiUrl">URL</label>
                                     <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
                                 </div>
-                                <div class="field-row">
-                                    <label for="apiParams">Query Parameters</label>
-                                    <textarea id="apiParams" placeholder="JSON object or key=value lines"></textarea>
+                                <div class="headers-section">
+                                    <div class="headers-section-title">
+                                        <span>Query Parameters</span>
+                                    </div>
+                                    <table class="headers-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Key</th>
+                                                <th>Value</th>
+                                                <th style="width: 50px;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="paramsTableBody">
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn-add-header" id="addParamBtn">+ Add Parameter</button>
                                 </div>
                                 <div class="headers-section">
                                     <div class="headers-section-title">
@@ -531,6 +544,7 @@
                                 <div class="field-row">
                                     <label for="apiBodyFormat">Body Type</label>
                                     <select id="apiBodyFormat">
+                                        <option>None</option>
                                         <option>JSON</option>
                                         <option>XML</option>
                                     </select>
@@ -677,6 +691,8 @@
         const basicAuthPassword = document.getElementById('basicAuthPassword');
         const headersTableBody = document.getElementById('headersTableBody');
         const addHeaderBtn = document.getElementById('addHeaderBtn');
+        const paramsTableBody = document.getElementById('paramsTableBody');
+        const addParamBtn = document.getElementById('addParamBtn');
         const apiBodyFormatInput = document.getElementById('apiBodyFormat');
         const apiBodyInput = document.getElementById('apiBody');
         const saveApiBtn = document.getElementById('saveApiBtn');
@@ -716,6 +732,7 @@
 
         let currentApiIndex = null;
         let currentHeaders = {};
+        let currentParams = {};
         let currentAuthType = 'none';
 
         function renderApiTable() {
@@ -747,7 +764,13 @@
             apiNameInput.value = api.name;
             apiMethodInput.value = api.method;
             apiUrlInput.value = api.url;
-            apiParamsInput.value = api.params;
+            
+            // Parse params from JSON string to object
+            try {
+                currentParams = JSON.parse(api.params || '{}');
+            } catch (e) {
+                currentParams = {};
+            }
             
             // Parse headers from JSON string to object
             try {
@@ -759,10 +782,11 @@
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
             
+            renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
             
-            apiBodyFormatInput.value = api.bodyFormat;
+            apiBodyFormatInput.value = api.bodyFormat || 'None';
             apiBodyInput.value = api.body;
             apiEditor.classList.remove('hidden');
             responsePanel.classList.add('hidden');
@@ -798,6 +822,38 @@
                 
                 row.querySelector('.header-value').addEventListener('change', (e) => {
                     currentHeaders[key] = e.target.value;
+                });
+            });
+        }
+
+        function renderParamsTable() {
+            paramsTableBody.innerHTML = '';
+            Object.entries(currentParams).forEach(([key, value]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text" class="param-key" value="${escapeHtml(key)}" placeholder="Parameter name"></td>
+                    <td><input type="text" class="param-value" value="${escapeHtml(value)}" placeholder="Parameter value"></td>
+                    <td class="header-row-actions"><button type="button" class="btn-small delete-param">Delete</button></td>
+                `;
+                paramsTableBody.appendChild(row);
+                
+                row.querySelector('.delete-param').addEventListener('click', () => {
+                    delete currentParams[key];
+                    renderParamsTable();
+                });
+                
+                row.querySelector('.param-key').addEventListener('change', (e) => {
+                    const oldKey = key;
+                    const newKey = e.target.value.trim();
+                    if (newKey && newKey !== oldKey) {
+                        currentParams[newKey] = currentParams[oldKey];
+                        delete currentParams[oldKey];
+                        renderParamsTable();
+                    }
+                });
+                
+                row.querySelector('.param-value').addEventListener('change', (e) => {
+                    currentParams[key] = e.target.value;
                 });
             });
         }
@@ -864,9 +920,14 @@
 
         function updateBodyState() {
             const method = apiMethodInput.value;
-            if (method === 'GET' || method === 'DELETE') {
+            const bodyType = apiBodyFormatInput.value;
+            if (method === 'GET' || method === 'DELETE' || bodyType === 'None') {
                 apiBodyInput.disabled = true;
-                apiBodyInput.placeholder = 'Body is ignored for GET/DELETE requests';
+                if (bodyType === 'None') {
+                    apiBodyInput.placeholder = 'No body will be sent with this request';
+                } else {
+                    apiBodyInput.placeholder = 'Body is ignored for GET/DELETE requests';
+                }
             } else {
                 apiBodyInput.disabled = false;
                 apiBodyInput.placeholder = 'Request body in JSON or XML';
@@ -874,6 +935,21 @@
         }
 
         function saveApi() {
+            // Update current params from table inputs
+            const paramInputs = paramsTableBody.querySelectorAll('tr');
+            currentParams = {};
+            paramInputs.forEach(row => {
+                const keyInput = row.querySelector('.param-key');
+                const valueInput = row.querySelector('.param-value');
+                if (keyInput && valueInput) {
+                    const key = keyInput.value.trim();
+                    const value = valueInput.value.trim();
+                    if (key) {
+                        currentParams[key] = value;
+                    }
+                }
+            });
+
             // Update current headers from table inputs
             const headerInputs = headersTableBody.querySelectorAll('tr');
             currentHeaders = {};
@@ -893,7 +969,7 @@
                 name: apiNameInput.value.trim() || 'Untitled API',
                 method: apiMethodInput.value,
                 url: apiUrlInput.value.trim(),
-                params: apiParamsInput.value.trim(),
+                params: JSON.stringify(currentParams),
                 headers: JSON.stringify(currentHeaders),
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
@@ -909,6 +985,21 @@
         }
 
         async function sendRequest() {
+            // Update current params from table inputs
+            const paramInputs = paramsTableBody.querySelectorAll('tr');
+            currentParams = {};
+            paramInputs.forEach(row => {
+                const keyInput = row.querySelector('.param-key');
+                const valueInput = row.querySelector('.param-value');
+                if (keyInput && valueInput) {
+                    const key = keyInput.value.trim();
+                    const value = valueInput.value.trim();
+                    if (key) {
+                        currentParams[key] = value;
+                    }
+                }
+            });
+
             // Update current headers from table inputs
             const headerInputs = headersTableBody.querySelectorAll('tr');
             currentHeaders = {};
@@ -928,7 +1019,7 @@
                 name: apiNameInput.value.trim() || 'Untitled API',
                 method: apiMethodInput.value,
                 url: apiUrlInput.value.trim(),
-                params: apiParamsInput.value.trim(),
+                params: JSON.stringify(currentParams),
                 headers: JSON.stringify(currentHeaders),
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
@@ -940,7 +1031,7 @@
             }
             clearResponse();
 
-            const paramsMap = parseKeyValueText(api.params);
+            const paramsMap = JSON.parse(api.params || '{}');
             const headersMap = JSON.parse(api.headers || '{}');
             
             // Add Basic Auth header if selected
@@ -964,12 +1055,12 @@
                 headers: { ...headersMap }
             };
 
-            if (api.method !== 'GET' && api.method !== 'DELETE') {
+            if (api.method !== 'GET' && api.method !== 'DELETE' && api.bodyFormat !== 'None') {
                 if (api.body) {
                     if (api.bodyFormat === 'XML') {
                         requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/xml';
                         requestOptions.body = api.body;
-                    } else {
+                    } else if (api.bodyFormat === 'JSON') {
                         requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/json';
                         requestOptions.body = api.body;
                     }
@@ -1025,14 +1116,15 @@
             apiNameInput.value = '';
             apiMethodInput.value = 'GET';
             apiUrlInput.value = '';
-            apiParamsInput.value = '';
+            currentParams = {};
             currentHeaders = {};
             currentAuthType = 'none';
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
+            renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
-            apiBodyFormatInput.value = 'JSON';
+            apiBodyFormatInput.value = 'None';
             apiBodyInput.value = '';
             apiEditor.classList.remove('hidden');
             responsePanel.classList.add('hidden');
@@ -1044,6 +1136,11 @@
             renderHeadersTable();
         });
 
+        addParamBtn.addEventListener('click', () => {
+            currentParams[`Parameter${Object.keys(currentParams).length + 1}`] = '';
+            renderParamsTable();
+        });
+
         authTypeRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 currentAuthType = e.target.value;
@@ -1052,6 +1149,7 @@
         });
 
         apiMethodInput.addEventListener('change', updateBodyState);
+        apiBodyFormatInput.addEventListener('change', updateBodyState);
         saveApiBtn.addEventListener('click', saveApi);
         sendRequestBtn.addEventListener('click', sendRequest);
 
