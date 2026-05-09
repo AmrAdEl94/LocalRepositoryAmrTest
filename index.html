@@ -181,6 +181,97 @@
         .url-row {
             grid-column: span 2;
         }
+        .headers-section {
+            grid-column: span 2;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 12px;
+            background-color: #f8f9fa;
+        }
+        .headers-section-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .auth-type-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .auth-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .headers-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .headers-table tr {
+            border-bottom: 1px solid #dee2e6;
+        }
+        .headers-table th {
+            background-color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .headers-table td {
+            padding: 8px;
+        }
+        .headers-table input {
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 13px;
+        }
+        .header-row-actions {
+            text-align: center;
+        }
+        .btn-small {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-small:hover {
+            background-color: #c82333;
+        }
+        .btn-add-header {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-add-header:hover {
+            background-color: #218838;
+        }
+        .basic-auth-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .basic-auth-inputs input {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            width: 100%;
+        }
         .body-row {
             grid-column: span 2;
         }
@@ -406,9 +497,36 @@
                                     <label for="apiParams">Query Parameters</label>
                                     <textarea id="apiParams" placeholder="JSON object or key=value lines"></textarea>
                                 </div>
-                                <div class="field-row">
-                                    <label for="apiHeaders">Headers</label>
-                                    <textarea id="apiHeaders" placeholder="JSON object or key=value lines"></textarea>
+                                <div class="headers-section">
+                                    <div class="headers-section-title">
+                                        <span>Headers & Authorization</span>
+                                    </div>
+                                    <div class="auth-type-selector">
+                                        <div class="auth-group">
+                                            <label><input type="radio" name="authType" value="none" checked> No Auth</label>
+                                        </div>
+                                        <div class="auth-group">
+                                            <label><input type="radio" name="authType" value="basic"> Basic Auth</label>
+                                        </div>
+                                    </div>
+                                    <div id="basicAuthSection" style="display: none;">
+                                        <div class="basic-auth-inputs">
+                                            <input type="text" id="basicAuthUsername" placeholder="Username">
+                                            <input type="password" id="basicAuthPassword" placeholder="Password">
+                                        </div>
+                                    </div>
+                                    <table class="headers-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Key</th>
+                                                <th>Value</th>
+                                                <th style="width: 50px;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="headersTableBody">
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn-add-header" id="addHeaderBtn">+ Add Header</button>
                                 </div>
                                 <div class="field-row">
                                     <label for="apiBodyFormat">Body Type</label>
@@ -553,7 +671,12 @@
         const apiMethodInput = document.getElementById('apiMethod');
         const apiUrlInput = document.getElementById('apiUrl');
         const apiParamsInput = document.getElementById('apiParams');
-        const apiHeadersInput = document.getElementById('apiHeaders');
+        const authTypeRadios = document.querySelectorAll('input[name="authType"]');
+        const basicAuthSection = document.getElementById('basicAuthSection');
+        const basicAuthUsername = document.getElementById('basicAuthUsername');
+        const basicAuthPassword = document.getElementById('basicAuthPassword');
+        const headersTableBody = document.getElementById('headersTableBody');
+        const addHeaderBtn = document.getElementById('addHeaderBtn');
         const apiBodyFormatInput = document.getElementById('apiBodyFormat');
         const apiBodyInput = document.getElementById('apiBody');
         const saveApiBtn = document.getElementById('saveApiBtn');
@@ -592,6 +715,8 @@
         ];
 
         let currentApiIndex = null;
+        let currentHeaders = {};
+        let currentAuthType = 'none';
 
         function renderApiTable() {
             apiTableBody.innerHTML = '';
@@ -623,13 +748,78 @@
             apiMethodInput.value = api.method;
             apiUrlInput.value = api.url;
             apiParamsInput.value = api.params;
-            apiHeadersInput.value = api.headers;
+            
+            // Parse headers from JSON string to object
+            try {
+                currentHeaders = JSON.parse(api.headers || '{}');
+            } catch (e) {
+                currentHeaders = {};
+            }
+            currentAuthType = 'none';
+            basicAuthUsername.value = '';
+            basicAuthPassword.value = '';
+            
+            renderHeadersTable();
+            updateAuthTypeDisplay();
+            
             apiBodyFormatInput.value = api.bodyFormat;
             apiBodyInput.value = api.body;
             apiEditor.classList.remove('hidden');
             responsePanel.classList.add('hidden');
             requestPreview.classList.add('hidden');
             updateBodyState();
+        }
+
+        function renderHeadersTable() {
+            headersTableBody.innerHTML = '';
+            Object.entries(currentHeaders).forEach(([key, value]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text" class="header-key" value="${escapeHtml(key)}" placeholder="Header name"></td>
+                    <td><input type="text" class="header-value" value="${escapeHtml(value)}" placeholder="Header value"></td>
+                    <td class="header-row-actions"><button type="button" class="btn-small delete-header">Delete</button></td>
+                `;
+                headersTableBody.appendChild(row);
+                
+                row.querySelector('.delete-header').addEventListener('click', () => {
+                    delete currentHeaders[key];
+                    renderHeadersTable();
+                });
+                
+                row.querySelector('.header-key').addEventListener('change', (e) => {
+                    const oldKey = key;
+                    const newKey = e.target.value.trim();
+                    if (newKey && newKey !== oldKey) {
+                        currentHeaders[newKey] = currentHeaders[oldKey];
+                        delete currentHeaders[oldKey];
+                        renderHeadersTable();
+                    }
+                });
+                
+                row.querySelector('.header-value').addEventListener('change', (e) => {
+                    currentHeaders[key] = e.target.value;
+                });
+            });
+        }
+
+        function updateAuthTypeDisplay() {
+            authTypeRadios.forEach(radio => {
+                if (radio.value === currentAuthType) {
+                    radio.checked = true;
+                }
+            });
+            basicAuthSection.style.display = currentAuthType === 'basic' ? 'block' : 'none';
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
         }
 
         function parseKeyValueText(text) {
@@ -684,12 +874,27 @@
         }
 
         function saveApi() {
+            // Update current headers from table inputs
+            const headerInputs = headersTableBody.querySelectorAll('tr');
+            currentHeaders = {};
+            headerInputs.forEach(row => {
+                const keyInput = row.querySelector('.header-key');
+                const valueInput = row.querySelector('.header-value');
+                if (keyInput && valueInput) {
+                    const key = keyInput.value.trim();
+                    const value = valueInput.value.trim();
+                    if (key) {
+                        currentHeaders[key] = value;
+                    }
+                }
+            });
+
             const api = {
                 name: apiNameInput.value.trim() || 'Untitled API',
                 method: apiMethodInput.value,
                 url: apiUrlInput.value.trim(),
                 params: apiParamsInput.value.trim(),
-                headers: apiHeadersInput.value.trim(),
+                headers: JSON.stringify(currentHeaders),
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -704,12 +909,27 @@
         }
 
         async function sendRequest() {
+            // Update current headers from table inputs
+            const headerInputs = headersTableBody.querySelectorAll('tr');
+            currentHeaders = {};
+            headerInputs.forEach(row => {
+                const keyInput = row.querySelector('.header-key');
+                const valueInput = row.querySelector('.header-value');
+                if (keyInput && valueInput) {
+                    const key = keyInput.value.trim();
+                    const value = valueInput.value.trim();
+                    if (key) {
+                        currentHeaders[key] = value;
+                    }
+                }
+            });
+
             const api = {
                 name: apiNameInput.value.trim() || 'Untitled API',
                 method: apiMethodInput.value,
                 url: apiUrlInput.value.trim(),
                 params: apiParamsInput.value.trim(),
-                headers: apiHeadersInput.value.trim(),
+                headers: JSON.stringify(currentHeaders),
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -721,7 +941,18 @@
             clearResponse();
 
             const paramsMap = parseKeyValueText(api.params);
-            const headersMap = parseKeyValueText(api.headers);
+            const headersMap = JSON.parse(api.headers || '{}');
+            
+            // Add Basic Auth header if selected
+            if (currentAuthType === 'basic') {
+                const username = basicAuthUsername.value.trim();
+                const password = basicAuthPassword.value.trim();
+                if (username || password) {
+                    const credentials = btoa(`${username}:${password}`);
+                    headersMap['Authorization'] = `Basic ${credentials}`;
+                }
+            }
+            
             let requestUrl = api.url;
             const query = buildQueryString(paramsMap);
             if (query) {
@@ -795,12 +1026,29 @@
             apiMethodInput.value = 'GET';
             apiUrlInput.value = '';
             apiParamsInput.value = '';
-            apiHeadersInput.value = '';
+            currentHeaders = {};
+            currentAuthType = 'none';
+            basicAuthUsername.value = '';
+            basicAuthPassword.value = '';
+            renderHeadersTable();
+            updateAuthTypeDisplay();
             apiBodyFormatInput.value = 'JSON';
             apiBodyInput.value = '';
             apiEditor.classList.remove('hidden');
             responsePanel.classList.add('hidden');
             updateBodyState();
+        });
+
+        addHeaderBtn.addEventListener('click', () => {
+            currentHeaders[`Header${Object.keys(currentHeaders).length + 1}`] = '';
+            renderHeadersTable();
+        });
+
+        authTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentAuthType = e.target.value;
+                updateAuthTypeDisplay();
+            });
         });
 
         apiMethodInput.addEventListener('change', updateBodyState);
