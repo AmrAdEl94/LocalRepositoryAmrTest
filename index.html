@@ -521,11 +521,20 @@
                                         <div class="auth-group">
                                             <label><input type="radio" name="authType" value="basic"> Basic Auth</label>
                                         </div>
+                                        <div class="auth-group">
+                                            <label><input type="radio" name="authType" value="bearer"> Bearer Token</label>
+                                        </div>
                                     </div>
                                     <div id="basicAuthSection" style="display: none;">
                                         <div class="basic-auth-inputs">
                                             <input type="text" id="basicAuthUsername" placeholder="Username">
                                             <input type="password" id="basicAuthPassword" placeholder="Password">
+                                        </div>
+                                    </div>
+                                    <div id="bearerAuthSection" style="display: none;">
+                                        <div class="basic-auth-inputs">
+                                            <input type="text" id="bearerTokenInput" placeholder="Bearer token">
+                                            <button type="button" id="pasteBearerTokenBtn" class="btn btn-secondary" style="width:auto;">Paste from Clipboard</button>
                                         </div>
                                     </div>
                                     <table class="headers-table">
@@ -707,6 +716,9 @@
         const previewUrl = document.getElementById('previewUrl');
         const previewHeaders = document.getElementById('previewHeaders');
         const previewBody = document.getElementById('previewBody');
+        const bearerAuthSection = document.getElementById('bearerAuthSection');
+        const bearerTokenInput = document.getElementById('bearerTokenInput');
+        const pasteBearerTokenBtn = document.getElementById('pasteBearerTokenBtn');
 
         
         const apiList = [
@@ -764,14 +776,12 @@
             apiNameInput.value = api.name;
             apiMethodInput.value = api.method;
             apiUrlInput.value = api.url;
-            
             // Parse params from JSON string to object
             try {
                 currentParams = JSON.parse(api.params || '{}');
             } catch (e) {
                 currentParams = {};
             }
-            
             // Parse headers from JSON string to object
             try {
                 currentHeaders = JSON.parse(api.headers || '{}');
@@ -781,11 +791,10 @@
             currentAuthType = 'none';
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
-            
+            if (bearerTokenInput) bearerTokenInput.value = '';
             renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
-            
             apiBodyFormatInput.value = api.bodyFormat || 'None';
             apiBodyInput.value = api.body;
             apiEditor.classList.remove('hidden');
@@ -865,6 +874,9 @@
                 }
             });
             basicAuthSection.style.display = currentAuthType === 'basic' ? 'block' : 'none';
+            if (bearerAuthSection) {
+                bearerAuthSection.style.display = currentAuthType === 'bearer' ? 'block' : 'none';
+            }
         }
 
         function escapeHtml(text) {
@@ -1034,7 +1046,7 @@
             const paramsMap = JSON.parse(api.params || '{}');
             const headersMap = JSON.parse(api.headers || '{}');
             
-            // Add Basic Auth header if selected
+            // Add Basic Auth or Bearer header if selected
             if (currentAuthType === 'basic') {
                 const username = basicAuthUsername.value.trim();
                 const password = basicAuthPassword.value.trim();
@@ -1042,7 +1054,28 @@
                     const credentials = btoa(`${username}:${password}`);
                     headersMap['Authorization'] = `Basic ${credentials}`;
                 }
+            } else if (currentAuthType === 'bearer') {
+                if (bearerTokenInput) {
+                    const token = bearerTokenInput.value.trim();
+                    if (token) {
+                        headersMap['Authorization'] = `Bearer ${token}`;
+                    }
+                }
             }
+                    if (pasteBearerTokenBtn) {
+                        pasteBearerTokenBtn.addEventListener('click', async () => {
+                            if (navigator.clipboard) {
+                                try {
+                                    const text = await navigator.clipboard.readText();
+                                    bearerTokenInput.value = text;
+                                } catch (err) {
+                                    alert('Failed to read clipboard: ' + err.message);
+                                }
+                            } else {
+                                alert('Clipboard API not supported.');
+                            }
+                        });
+                    }
             
             let requestUrl = api.url;
             const query = buildQueryString(paramsMap);
@@ -1121,6 +1154,7 @@
             currentAuthType = 'none';
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
+            if (bearerTokenInput) bearerTokenInput.value = '';
             renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
