@@ -16,7 +16,7 @@
             color: #333;
         }
         .sidebar {
-            width: 250px;
+            width: 210px;
             height: 100vh;
             background-color: #343a40;
             color: white;
@@ -27,7 +27,7 @@
             overflow: hidden;
         }
         .sidebar.collapsed {
-            width: 60px;
+            width: 58px;
         }
         .sidebar-header {
             padding: 20px;
@@ -63,12 +63,12 @@
             background-color: #007bff;
         }
         .main-content {
-            margin-left: 250px;
+            margin-left: 210px;
             padding: 20px;
             transition: margin-left 0.3s;
         }
         .sidebar.collapsed + .main-content {
-            margin-left: 60px;
+            margin-left: 58px;
         }
         .header {
             background-color: white;
@@ -272,6 +272,31 @@
             font-size: 14px;
             width: 100%;
         }
+        .token-manager-section {
+            display: grid;
+            gap: 16px;
+        }
+        .token-form {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        .token-form .field-row {
+            grid-column: span 1;
+        }
+        .token-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .token-table th,
+        .token-table td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 8px;
+        }
         .body-row {
             grid-column: span 2;
         }
@@ -329,9 +354,13 @@
                 <i class="icon">👥</i>
                 <span>Users</span>
             </li>
-            <li data-page="content">
-                <i class="icon">📄</i>
-                <span>Content</span>
+            <li data-page="collection">
+                <i class="icon">🧰</i>
+                <span>Collection</span>
+            </li>
+            <li data-page="tokens">
+                <i class="icon">🔐</i>
+                <span>Tokens</span>
             </li>
             <li data-page="analytics">
                 <i class="icon">📊</i>
@@ -448,10 +477,10 @@
                 </div>
             </div>
 
-            <div id="content" class="page hidden">
+            <div id="collection" class="page hidden">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">API Request Editor</h5>
+                        <h5 class="card-title">Collection Manager</h5>
                     </div>
                     <div class="card-body">
                         <div class="toolbar">
@@ -492,6 +521,12 @@
                                 <div class="field-row url-row">
                                     <label for="apiUrl">URL</label>
                                     <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
+                                </div>
+                                <div class="field-row url-row">
+                                    <label for="apiTokenReference">Token Reference</label>
+                                    <select id="apiTokenReference">
+                                        <option value="">Select a saved token</option>
+                                    </select>
                                 </div>
                                 <div class="headers-section">
                                     <div class="headers-section-title">
@@ -657,6 +692,52 @@
                 </div>
             </div>
 
+            <div id="tokens" class="page hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Token Manager</h5>
+                    </div>
+                    <div class="card-body token-manager-section">
+                        <div class="toolbar">
+                            <button id="newTokenBtn" class="btn btn-primary">Add Token</button>
+                        </div>
+                        <div class="token-form">
+                            <div class="field-row">
+                                <label for="tokenNameInput">Token Name</label>
+                                <input id="tokenNameInput" type="text" placeholder="Example: Webex Access Token">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenTypeSelect">Token Type</label>
+                                <select id="tokenTypeSelect">
+                                    <option value="Bearer">Bearer</option>
+                                    <option value="Basic">Basic</option>
+                                    <option value="Custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenValueInput">Token Value</label>
+                                <input id="tokenValueInput" type="text" placeholder="Paste token value here">
+                            </div>
+                            <div class="field-row">
+                                <label>&nbsp;</label>
+                                <button id="saveTokenBtn" class="btn btn-secondary">Save Token</button>
+                            </div>
+                        </div>
+                        <table class="token-table" id="tokenTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tokenTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="analytics" class="page hidden">
                 <div class="card">
                     <div class="card-header">
@@ -740,6 +821,7 @@
         const apiNameInput = document.getElementById('apiName');
         const apiMethodInput = document.getElementById('apiMethod');
         const apiUrlInput = document.getElementById('apiUrl');
+        const apiTokenReference = document.getElementById('apiTokenReference');
         const apiParamsInput = document.getElementById('apiParams');
         const authTypeRadios = document.querySelectorAll('input[name="authType"]');
         const basicAuthSection = document.getElementById('basicAuthSection');
@@ -754,6 +836,12 @@
         const saveApiBtn = document.getElementById('saveApiBtn');
         const sendRequestBtn = document.getElementById('sendRequestBtn');
         const newApiBtn = document.getElementById('newApiBtn');
+        const tokenTableBody = document.getElementById('tokenTableBody');
+        const tokenNameInput = document.getElementById('tokenNameInput');
+        const tokenValueInput = document.getElementById('tokenValueInput');
+        const tokenTypeSelect = document.getElementById('tokenTypeSelect');
+        const saveTokenBtn = document.getElementById('saveTokenBtn');
+        const newTokenBtn = document.getElementById('newTokenBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
         const responseStatus = document.getElementById('responseStatus');
@@ -817,6 +905,88 @@
         let currentHeaders = {};
         let currentParams = {};
         let currentAuthType = 'none';
+        let tokenList = [];
+        let currentTokenIndex = null;
+
+        function loadTokens() {
+            try {
+                const stored = localStorage.getItem('collectionTokens');
+                tokenList = stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                tokenList = [];
+            }
+        }
+
+        function saveTokens() {
+            localStorage.setItem('collectionTokens', JSON.stringify(tokenList));
+        }
+
+        function renderTokenTable() {
+            if (!tokenTableBody) return;
+            tokenTableBody.innerHTML = '';
+            tokenList.forEach((token, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(token.name || 'Untitled Token')}</td>
+                    <td>${escapeHtml(token.type || 'Bearer')}</td>
+                    <td>${escapeHtml(token.value || '')}</td>
+                    <td>
+                        <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
+                    </td>
+                `;
+                tokenTableBody.appendChild(row);
+            });
+            tokenTableBody.querySelectorAll('button[data-token-index]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = Number(button.dataset.tokenIndex);
+                    currentTokenIndex = index;
+                    tokenNameInput.value = tokenList[index].name || '';
+                    tokenValueInput.value = tokenList[index].value || '';
+                    tokenTypeSelect.value = tokenList[index].type || 'Bearer';
+                });
+            });
+            populateTokenReferenceSelect();
+        }
+
+        function populateTokenReferenceSelect() {
+            if (!apiTokenReference) return;
+            const currentValue = apiTokenReference.value;
+            apiTokenReference.innerHTML = '<option value="">Select a saved token</option>';
+            tokenList.forEach(token => {
+                const option = document.createElement('option');
+                option.value = token.name;
+                option.textContent = token.name;
+                apiTokenReference.appendChild(option);
+            });
+            if (currentValue) {
+                apiTokenReference.value = currentValue;
+            }
+        }
+
+        function resetTokenForm() {
+            currentTokenIndex = null;
+            if (tokenNameInput) tokenNameInput.value = '';
+            if (tokenValueInput) tokenValueInput.value = '';
+            if (tokenTypeSelect) tokenTypeSelect.value = 'Bearer';
+        }
+
+        function saveToken() {
+            const name = tokenNameInput.value.trim();
+            const value = tokenValueInput.value.trim();
+            const type = tokenTypeSelect.value;
+            if (!name || !value) {
+                alert('Enter a token name and value before saving.');
+                return;
+            }
+            if (currentTokenIndex === null) {
+                tokenList.push({ name, value, type });
+            } else {
+                tokenList[currentTokenIndex] = { name, value, type };
+            }
+            saveTokens();
+            renderTokenTable();
+            resetTokenForm();
+        }
 
         function renderApiTable() {
             apiTableBody.innerHTML = '';
@@ -860,6 +1030,7 @@
                 currentHeaders = {};
             }
             currentAuthType = api.authType || 'none';
+            if (apiTokenReference) apiTokenReference.value = api.tokenRef || '';
             basicAuthUsername.value = api.basicAuthUsername || '';
             basicAuthPassword.value = api.basicAuthPassword || '';
             if (bearerTokenInput) bearerTokenInput.value = api.bearerToken || '';
@@ -1452,6 +1623,7 @@
                 oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
                 oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
                 oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
+                tokenRef: apiTokenReference ? apiTokenReference.value.trim() : '',
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -1521,6 +1693,7 @@
                 oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
                 oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
                 oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
+                tokenRef: apiTokenReference ? apiTokenReference.value.trim() : '',
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -1534,7 +1707,14 @@
             const paramsMap = JSON.parse(api.params || '{}');
             const headersMap = JSON.parse(api.headers || '{}');
             
-            if (currentAuthType === 'basic') {
+            const selectedToken = tokenList.find(token => token.name === (api.tokenRef || ''));
+            if (selectedToken) {
+                if (selectedToken.type === 'Basic') {
+                    headersMap['Authorization'] = `Basic ${selectedToken.value}`;
+                } else {
+                    headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
+                }
+            } else if (currentAuthType === 'basic') {
                 const username = basicAuthUsername.value.trim();
                 const password = basicAuthPassword.value.trim();
                 if (username || password) {
