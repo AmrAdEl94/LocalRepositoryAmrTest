@@ -522,7 +522,7 @@
                                     <label for="apiUrl">URL</label>
                                     <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
                                 </div>
-                                <div class="field-row url-row">
+                                <div class="field-row url-row" id="apiTokenReferenceRow" style="display: none;">
                                     <label for="apiTokenReference">Saved Token (Tokens tab)</label>
                                     <select id="apiTokenReference">
                                         <option value="">Select a saved token</option>
@@ -801,6 +801,7 @@
         const apiMethodInput = document.getElementById('apiMethod');
         const apiUrlInput = document.getElementById('apiUrl');
         const apiTokenReference = document.getElementById('apiTokenReference');
+        const apiTokenReferenceRow = document.getElementById('apiTokenReferenceRow');
         const apiParamsInput = document.getElementById('apiParams');
         const authTypeRadios = document.querySelectorAll('input[name="authType"]');
         const basicAuthSection = document.getElementById('basicAuthSection');
@@ -1139,6 +1140,9 @@
             basicAuthSection.style.display = currentAuthType === 'basic' ? 'block' : 'none';
             if (bearerAuthSection) {
                 bearerAuthSection.style.display = currentAuthType === 'bearer' ? 'block' : 'none';
+            }
+            if (apiTokenReferenceRow) {
+                apiTokenReferenceRow.style.display = currentAuthType === 'oauth2' ? 'flex' : 'none';
             }
             if (oauth2PasswordFields) {
                 oauth2PasswordFields.style.display = oauth2GrantType && oauth2GrantType.value === 'password' ? 'grid' : 'none';
@@ -1968,6 +1972,33 @@
                 try {
                     if (!tokenNameInput.value.trim()) {
                         throw new Error('Enter a token name before generating an OAuth token.');
+                    }
+                    if (!tokenAccessUrlInput.value.trim() && tokenGrantTypeSelect.value !== 'authorization_code') {
+                        throw new Error('Enter an Access Token URL before generating an OAuth token.');
+                    }
+                    if (tokenGrantTypeSelect.value === 'authorization_code') {
+                        syncOAuthFieldsFromTokenManager();
+                        syncTokenManagerFromOAuthFields();
+                        await authorizeAndFetchToken();
+                        const tokenData = {
+                            name: tokenNameInput.value.trim(),
+                            authUrl: tokenAuthUrlInput.value.trim(),
+                            accessTokenUrl: tokenAccessUrlInput.value.trim(),
+                            clientId: tokenClientIdInput.value.trim(),
+                            clientSecret: tokenClientSecretInput.value.trim(),
+                            scope: tokenScopeInput.value.trim(),
+                            callbackUrl: tokenCallbackInput.value.trim(),
+                            grantType: tokenGrantTypeSelect.value,
+                            value: tokenValueInput.value.trim() || oauth2AccessToken.value.trim()
+                        };
+                        if (currentTokenIndex === null) {
+                            tokenList.push(tokenData);
+                        } else {
+                            tokenList[currentTokenIndex] = tokenData;
+                        }
+                        saveTokens();
+                        renderTokenTable();
+                        return;
                     }
                     if (!tokenAccessUrlInput.value.trim()) {
                         throw new Error('Enter an Access Token URL before generating an OAuth token.');
