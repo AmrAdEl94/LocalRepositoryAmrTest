@@ -1011,12 +1011,12 @@
                 oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
                 currentAuthType: currentAuthType
             };
-            sessionStorage.setItem('oauth2FormState', JSON.stringify(state));
+            localStorage.setItem('oauth2FormState', JSON.stringify(state));
         }
 
         function restoreOAuthFormState() {
             try {
-                const raw = sessionStorage.getItem('oauth2FormState');
+                const raw = localStorage.getItem('oauth2FormState');
                 if (!raw) return;
                 const state = JSON.parse(raw);
                 if (oauth2AuthUrl) oauth2AuthUrl.value = state.oauth2AuthUrl || '';
@@ -1035,6 +1035,9 @@
                 if (oauth2AccessToken) oauth2AccessToken.value = state.oauth2AccessToken || '';
                 if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = state.oauth2SendClientCredentialsInBody !== undefined ? state.oauth2SendClientCredentialsInBody : true;
                 if (state.currentAuthType) currentAuthType = state.currentAuthType;
+                if (oauth2AccessToken && state.oauth2AccessToken) {
+                    oauth2AccessToken.value = state.oauth2AccessToken;
+                }
                 updateAuthTypeDisplay();
             } catch (error) {
                 // Ignore malformed stored state.
@@ -1141,6 +1144,46 @@
             window.open(authUrl, '_blank', 'width=900,height=700');
         }
 
+        function syncOAuthTokenToWindow(targetWindow, token, refreshToken) {
+            if (!targetWindow || !targetWindow.document) return;
+            try {
+                const targetAccessToken = targetWindow.document.getElementById('oauth2AccessToken');
+                const targetRefreshToken = targetWindow.document.getElementById('oauth2RefreshToken');
+                const targetAuthorizationCode = targetWindow.document.getElementById('oauth2AuthorizationCode');
+                if (targetAccessToken) targetAccessToken.value = token || '';
+                if (targetRefreshToken) targetRefreshToken.value = refreshToken || '';
+                if (targetAuthorizationCode && oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
+                    targetAuthorizationCode.value = oauth2AuthorizationCode.value.trim();
+                }
+            } catch (error) {
+                // Ignore cross-window DOM access errors.
+            }
+        }
+
+        function persistOAuthTokenState(token, refreshToken) {
+            if (oauth2AccessToken) oauth2AccessToken.value = token || '';
+            if (oauth2RefreshToken && refreshToken) oauth2RefreshToken.value = refreshToken;
+            localStorage.setItem('oauth2LatestToken', token || '');
+            localStorage.setItem('oauth2LatestRefreshToken', refreshToken || '');
+            localStorage.setItem('oauth2AuthFinished', 'true');
+            if (oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
+                localStorage.setItem('oauth2PendingCode', oauth2AuthorizationCode.value.trim());
+            }
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.localStorage.setItem('oauth2LatestToken', token || '');
+                    window.opener.localStorage.setItem('oauth2LatestRefreshToken', refreshToken || '');
+                    window.opener.localStorage.setItem('oauth2AuthFinished', 'true');
+                    if (oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
+                        window.opener.localStorage.setItem('oauth2PendingCode', oauth2AuthorizationCode.value.trim());
+                    }
+                    syncOAuthTokenToWindow(window.opener, token, refreshToken);
+                } catch (error) {
+                    // Ignore cross-window storage access errors.
+                }
+            }
+        }
+
         function waitForOAuthCode(popup) {
             return new Promise((resolve, reject) => {
                 const timeout = window.setTimeout(() => {
@@ -1154,7 +1197,19 @@
                 };
 
                 const interval = window.setInterval(() => {
+                    const authFinished = localStorage.getItem('oauth2AuthFinished') === 'true';
+                    const storedCode = localStorage.getItem('oauth2PendingCode') || '';
+                    if (authFinished && storedCode) {
+                        cleanup();
+                        resolve(storedCode);
+                        return;
+                    }
                     if (!popup || popup.closed) {
+                        if (authFinished) {
+                            cleanup();
+                            resolve(storedCode);
+                            return;
+                        }
                         cleanup();
                         reject(new Error('Authorization window was closed before completing sign-in.'));
                         return;
@@ -1190,6 +1245,7 @@
             const code = await waitForOAuthCode(popup);
             if (code) {
                 oauth2AuthorizationCode.value = code;
+                localStorage.setItem('oauth2PendingCode', code);
                 await fetchOAuth2Token(false);
                 return code;
             }
@@ -1270,6 +1326,7 @@
             if (data.refresh_token) {
                 oauth2RefreshToken.value = data.refresh_token;
             }
+            persistOAuthTokenState(data.access_token, data.refresh_token || '');
             return data.access_token;
         }
 
@@ -1690,7 +1747,12 @@
                 cleanOAuthCallbackUrl();
                 if (oauth2AuthorizationCode.value.trim()) {
                     fetchOAuth2Token(false).then(() => {
-                        alert('OAuth 2.0 token retrieved successfully.');
+                        if (!window.opener) {
+                            alert('OAuth 2.0 token retrieved successfully.');
+                        }
+                        if (window.opener && !window.opener.closed) {
+                            window.close();
+                        }
                     }).catch((error) => {
                         alert(error.message);
                     });
