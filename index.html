@@ -999,6 +999,43 @@
             return oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '';
         }
 
+        function inferOAuthTokenUrl() {
+            const authUrlValue = oauth2AuthUrl.value.trim();
+            if (!authUrlValue) {
+                return '';
+            }
+            try {
+                const authUrl = new URL(authUrlValue);
+                const pathname = authUrl.pathname.toLowerCase();
+                if (pathname.includes('/oauth2/v1/authorize')) {
+                    return `${authUrl.origin}${authUrl.pathname.replace('/oauth2/v1/authorize', '/oauth2/v1/access_token')}`;
+                }
+                if (pathname.includes('/oauth2/authorize')) {
+                    return `${authUrl.origin}${authUrl.pathname.replace('/oauth2/authorize', '/oauth2/token')}`;
+                }
+                if (pathname.includes('/oauth/authorize')) {
+                    return `${authUrl.origin}${authUrl.pathname.replace('/oauth/authorize', '/oauth/token')}`;
+                }
+                if (pathname.includes('/authorize')) {
+                    return `${authUrl.origin}${authUrl.pathname.replace('/authorize', '/token')}`;
+                }
+            } catch (error) {
+                return '';
+            }
+            return '';
+        }
+
+        function ensureOAuthTokenUrls() {
+            const inferredTokenUrl = inferOAuthTokenUrl();
+            if (!oauth2AccessTokenUrl.value.trim() && inferredTokenUrl) {
+                oauth2AccessTokenUrl.value = inferredTokenUrl;
+            }
+            if (!oauth2RefreshTokenUrl.value.trim() && oauth2AccessTokenUrl.value.trim()) {
+                oauth2RefreshTokenUrl.value = oauth2AccessTokenUrl.value.trim();
+            }
+            return oauth2AccessTokenUrl.value.trim();
+        }
+
         function extractOAuthCodeFromUrl(urlString) {
             try {
                 const url = new URL(urlString, window.location.href);
@@ -1109,7 +1146,8 @@
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
-            const tokenUrl = (forceRefresh && oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) ? oauth2RefreshTokenUrl.value.trim() : oauth2AccessTokenUrl.value.trim();
+            const resolvedTokenUrl = ensureOAuthTokenUrls();
+            const tokenUrl = (forceRefresh && oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) ? oauth2RefreshTokenUrl.value.trim() : resolvedTokenUrl;
             if (!tokenUrl) {
                 throw new Error('Enter an Access Token URL before requesting an OAuth 2.0 token.');
             }
