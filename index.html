@@ -523,7 +523,7 @@
                                     <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
                                 </div>
                                 <div class="field-row url-row">
-                                    <label for="apiTokenReference">Token Reference</label>
+                                    <label for="apiTokenReference">Saved Token (Tokens tab)</label>
                                     <select id="apiTokenReference">
                                         <option value="">Select a saved token</option>
                                     </select>
@@ -560,7 +560,7 @@
                                             <label><input type="radio" name="authType" value="bearer"> Bearer Token</label>
                                         </div>
                                         <div class="auth-group">
-                                            <label><input type="radio" name="authType" value="oauth2"> OAuth 2.0</label>
+                                            <label><input type="radio" name="authType" value="oauth2"> Saved OAuth Token</label>
                                         </div>
                                     </div>
                                     <div id="basicAuthSection" style="display: none;">
@@ -573,50 +573,6 @@
                                         <div class="basic-auth-inputs">
                                             <input type="text" id="bearerTokenInput" placeholder="Bearer token">
                                             <button type="button" id="pasteBearerTokenBtn" class="btn btn-secondary" style="width:auto;">Paste from Clipboard</button>
-                                        </div>
-                                    </div>
-                                    <div id="oauth2Section" style="display: none; margin-top: 10px;">
-                                        <div class="basic-auth-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
-                                            <input type="text" id="oauth2TokenName" placeholder="Token Name">
-                                            <select id="oauth2GrantType">
-                                                <option value="client_credentials">Client Credentials</option>
-                                                <option value="authorization_code">Authorization Code</option>
-                                                <option value="password">Password</option>
-                                                <option value="implicit">Implicit</option>
-                                            </select>
-                                            <div id="oauth2CallbackUrlRow" style="grid-column: 1 / -1; display: none;">
-                                                <input type="text" id="oauth2CallbackUrl" placeholder="Callback URL">
-                                            </div>
-                                            <div id="oauth2AuthUrlRow" style="grid-column: 1 / -1; display: none;">
-                                                <input type="text" id="oauth2AuthUrl" placeholder="Auth URL">
-                                            </div>
-                                            <div id="oauth2AuthorizationCodeRow" style="grid-column: 1 / -1; display: none;">
-                                                <input type="text" id="oauth2AuthorizationCode" placeholder="Authorization Code (for auth code flow)">
-                                            </div>
-                                            <input type="text" id="oauth2AccessTokenUrl" placeholder="Access Token URL">
-                                            <input type="text" id="oauth2ClientId" placeholder="Client ID">
-                                            <input type="password" id="oauth2ClientSecret" placeholder="Client Secret">
-                                            <input type="text" id="oauth2Scope" placeholder="Scope">
-                                            <input type="text" id="oauth2State" placeholder="State" value="new">
-                                            <label style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                                                <input type="checkbox" id="oauth2SendClientCredentialsInBody" checked style="width: 16px; height: 16px;">
-                                                <span>Send client credentials in body</span>
-                                            </label>
-                                            <input type="text" id="oauth2RefreshTokenUrl" placeholder="Refresh Token URL">
-                                            <textarea id="oauth2RefreshToken" rows="2" placeholder="Refresh Token (will be filled automatically)"></textarea>
-                                            <div id="oauth2PasswordFields" style="display: none; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
-                                                <input type="text" id="oauth2Username" placeholder="Username (password grant)">
-                                                <input type="password" id="oauth2Password" placeholder="Password (password grant)">
-                                            </div>
-                                            <div style="grid-column: 1 / -1; display: grid; gap: 8px;">
-                                                <label for="oauth2AccessToken" style="font-size: 12px;">Access token</label>
-                                                <textarea id="oauth2AccessToken" rows="3" placeholder="Access token will appear here after you request it"></textarea>
-                                            </div>
-                                            <div style="grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;">
-                                                <button type="button" id="getOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Get Token</button>
-                                                <button type="button" id="refreshOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Refresh Token</button>
-                                                <button type="button" id="openOAuth2AuthBtn" class="btn btn-secondary" style="width:auto;">Open Auth URL</button>
-                                            </div>
                                         </div>
                                     </div>
                                     <table class="headers-table">
@@ -744,7 +700,6 @@
                             <div class="field-row" style="grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button id="saveTokenBtn" class="btn btn-secondary">Save Token</button>
                                 <button id="generateTokenBtn" class="btn btn-primary">Generate Token</button>
-                                <button id="openTokenAuthBtn" class="btn btn-secondary">Open Auth URL</button>
                             </div>
                         </div>
                         <table class="token-table" id="tokenTable">
@@ -873,7 +828,6 @@
         const saveTokenBtn = document.getElementById('saveTokenBtn');
         const newTokenBtn = document.getElementById('newTokenBtn');
         const generateTokenBtn = document.getElementById('generateTokenBtn');
-        const openTokenAuthBtn = document.getElementById('openTokenAuthBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
         const responseStatus = document.getElementById('responseStatus');
@@ -886,7 +840,6 @@
         const bearerAuthSection = document.getElementById('bearerAuthSection');
         const bearerTokenInput = document.getElementById('bearerTokenInput');
         const pasteBearerTokenBtn = document.getElementById('pasteBearerTokenBtn');
-        const oauth2Section = document.getElementById('oauth2Section');
         const oauth2TokenName = document.getElementById('oauth2TokenName');
         const oauth2CallbackUrl = document.getElementById('oauth2CallbackUrl');
         const oauth2AuthUrl = document.getElementById('oauth2AuthUrl');
@@ -907,9 +860,6 @@
         const oauth2PasswordFields = document.getElementById('oauth2PasswordFields');
         const oauth2CallbackUrlRow = document.getElementById('oauth2CallbackUrlRow');
         const oauth2AuthUrlRow = document.getElementById('oauth2AuthUrlRow');
-        const getOAuth2TokenBtn = document.getElementById('getOAuth2TokenBtn');
-        const refreshOAuth2TokenBtn = document.getElementById('refreshOAuth2TokenBtn');
-        const openOAuth2AuthBtn = document.getElementById('openOAuth2AuthBtn');
 
         
         const apiList = [
@@ -1190,9 +1140,6 @@
             if (bearerAuthSection) {
                 bearerAuthSection.style.display = currentAuthType === 'bearer' ? 'block' : 'none';
             }
-            if (oauth2Section) {
-                oauth2Section.style.display = currentAuthType === 'oauth2' ? 'block' : 'none';
-            }
             if (oauth2PasswordFields) {
                 oauth2PasswordFields.style.display = oauth2GrantType && oauth2GrantType.value === 'password' ? 'grid' : 'none';
             }
@@ -1302,15 +1249,80 @@
             return '';
         }
 
-        function ensureOAuthTokenUrls() {
-            const inferredTokenUrl = inferOAuthTokenUrl();
-            if (!oauth2AccessTokenUrl.value.trim() && inferredTokenUrl) {
-                oauth2AccessTokenUrl.value = inferredTokenUrl;
+        function syncOAuthFieldsFromTokenManager() {
+            if (tokenAuthUrlInput && oauth2AuthUrl) {
+                oauth2AuthUrl.value = tokenAuthUrlInput.value.trim();
             }
-            if (!oauth2RefreshTokenUrl.value.trim() && oauth2AccessTokenUrl.value.trim()) {
+            if (tokenAccessUrlInput && oauth2AccessTokenUrl) {
+                oauth2AccessTokenUrl.value = tokenAccessUrlInput.value.trim();
+            }
+            if (tokenClientIdInput && oauth2ClientId) {
+                oauth2ClientId.value = tokenClientIdInput.value.trim();
+            }
+            if (tokenClientSecretInput && oauth2ClientSecret) {
+                oauth2ClientSecret.value = tokenClientSecretInput.value.trim();
+            }
+            if (tokenScopeInput && oauth2Scope) {
+                oauth2Scope.value = tokenScopeInput.value.trim();
+            }
+            if (tokenCallbackInput && oauth2CallbackUrl) {
+                oauth2CallbackUrl.value = tokenCallbackInput.value.trim();
+            }
+            if (tokenGrantTypeSelect && oauth2GrantType) {
+                oauth2GrantType.value = tokenGrantTypeSelect.value;
+            }
+            if (tokenAccessUrlInput && oauth2RefreshTokenUrl) {
+                oauth2RefreshTokenUrl.value = tokenAccessUrlInput.value.trim();
+            }
+            if (tokenValueInput && oauth2AccessToken) {
+                oauth2AccessToken.value = tokenValueInput.value.trim();
+            }
+        }
+
+        function syncTokenManagerFromOAuthFields() {
+            if (tokenAuthUrlInput && oauth2AuthUrl) {
+                tokenAuthUrlInput.value = oauth2AuthUrl.value.trim();
+            }
+            if (tokenAccessUrlInput && oauth2AccessTokenUrl) {
+                tokenAccessUrlInput.value = oauth2AccessTokenUrl.value.trim();
+            }
+            if (tokenClientIdInput && oauth2ClientId) {
+                tokenClientIdInput.value = oauth2ClientId.value.trim();
+            }
+            if (tokenClientSecretInput && oauth2ClientSecret) {
+                tokenClientSecretInput.value = oauth2ClientSecret.value.trim();
+            }
+            if (tokenScopeInput && oauth2Scope) {
+                tokenScopeInput.value = oauth2Scope.value.trim();
+            }
+            if (tokenCallbackInput && oauth2CallbackUrl) {
+                tokenCallbackInput.value = oauth2CallbackUrl.value.trim();
+            }
+            if (tokenGrantTypeSelect && oauth2GrantType) {
+                tokenGrantTypeSelect.value = oauth2GrantType.value;
+            }
+            if (tokenValueInput && oauth2AccessToken) {
+                tokenValueInput.value = oauth2AccessToken.value.trim();
+            }
+        }
+
+        function ensureOAuthTokenUrls() {
+            syncOAuthFieldsFromTokenManager();
+            const inferredTokenUrl = inferOAuthTokenUrl();
+            const fallbackTokenUrl = tokenAccessUrlInput && tokenAccessUrlInput.value.trim()
+                ? tokenAccessUrlInput.value.trim()
+                : (oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '');
+            const sourceUrl = fallbackTokenUrl || inferredTokenUrl;
+            if (tokenAccessUrlInput && !tokenAccessUrlInput.value.trim() && sourceUrl) {
+                tokenAccessUrlInput.value = sourceUrl;
+            }
+            if (oauth2AccessTokenUrl && !oauth2AccessTokenUrl.value.trim() && sourceUrl) {
+                oauth2AccessTokenUrl.value = sourceUrl;
+            }
+            if (oauth2RefreshTokenUrl && !oauth2RefreshTokenUrl.value.trim() && oauth2AccessTokenUrl.value.trim()) {
                 oauth2RefreshTokenUrl.value = oauth2AccessTokenUrl.value.trim();
             }
-            return oauth2AccessTokenUrl.value.trim();
+            return sourceUrl;
         }
 
         function extractOAuthCodeFromUrl(urlString) {
@@ -1349,8 +1361,9 @@
         }
 
         function buildOAuthAuthorizationUrl() {
+            syncOAuthFieldsFromTokenManager();
             saveOAuthFormState();
-            const authUrlValue = oauth2AuthUrl.value.trim();
+            const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
             }
@@ -1458,6 +1471,8 @@
         }
 
         async function authorizeAndFetchToken() {
+            syncOAuthFieldsFromTokenManager();
+            syncTokenManagerFromOAuthFields();
             saveOAuthFormState();
             if (oauth2GrantType.value !== 'authorization_code') {
                 return fetchOAuth2Token(false);
@@ -1478,6 +1493,8 @@
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
+            syncOAuthFieldsFromTokenManager();
+            syncTokenManagerFromOAuthFields();
             const resolvedTokenUrl = ensureOAuthTokenUrls();
             const tokenUrl = (forceRefresh && oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) ? oauth2RefreshTokenUrl.value.trim() : resolvedTokenUrl;
             if (!tokenUrl) {
@@ -1548,6 +1565,9 @@
                 throw new Error('No access token was returned by the OAuth 2.0 server.');
             }
             oauth2AccessToken.value = data.access_token;
+            if (tokenValueInput) {
+                tokenValueInput.value = data.access_token;
+            }
             if (data.refresh_token) {
                 oauth2RefreshToken.value = data.refresh_token;
             }
@@ -1762,7 +1782,13 @@
             const headersMap = JSON.parse(api.headers || '{}');
             
             const selectedToken = tokenList.find(token => token.name === (api.tokenRef || ''));
-            if (selectedToken) {
+            if (currentAuthType === 'oauth2') {
+                if (!selectedToken || !selectedToken.value) {
+                    alert('Select a saved OAuth token from the Tokens tab before sending this request.');
+                    return;
+                }
+                headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
+            } else if (selectedToken) {
                 if (selectedToken.type === 'Basic') {
                     headersMap['Authorization'] = `Basic ${selectedToken.value}`;
                 } else {
@@ -1931,38 +1957,6 @@
             });
         });
 
-        if (getOAuth2TokenBtn) {
-            getOAuth2TokenBtn.addEventListener('click', async () => {
-                try {
-                    await authorizeAndFetchToken();
-                    alert('OAuth 2.0 token retrieved successfully.');
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-        }
-
-        if (openOAuth2AuthBtn) {
-            openOAuth2AuthBtn.addEventListener('click', () => {
-                try {
-                    openOAuth2AuthorizationUrl();
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-        }
-
-        if (refreshOAuth2TokenBtn) {
-            refreshOAuth2TokenBtn.addEventListener('click', async () => {
-                try {
-                    await fetchOAuth2Token(true);
-                    alert('OAuth 2.0 token refreshed successfully.');
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-        }
-
         if (oauth2GrantType) {
             oauth2GrantType.addEventListener('change', updateAuthTypeDisplay);
         }
@@ -2022,22 +2016,6 @@
                 }
             });
         }
-        if (openTokenAuthBtn) {
-            openTokenAuthBtn.addEventListener('click', () => {
-                const authUrlValue = tokenAuthUrlInput.value.trim();
-                if (!authUrlValue) {
-                    alert('Enter an Authorization URL before opening the sign-in page.');
-                    return;
-                }
-                const authUrl = new URL(authUrlValue);
-                authUrl.searchParams.set('response_type', 'code');
-                if (tokenClientIdInput.value.trim()) authUrl.searchParams.set('client_id', tokenClientIdInput.value.trim());
-                if (tokenScopeInput.value.trim()) authUrl.searchParams.set('scope', tokenScopeInput.value.trim());
-                if (tokenCallbackInput.value.trim()) authUrl.searchParams.set('redirect_uri', tokenCallbackInput.value.trim());
-                window.open(authUrl.toString(), '_blank', 'width=900,height=700');
-            });
-        }
-
         apiMethodInput.addEventListener('change', updateBodyState);
         apiBodyFormatInput.addEventListener('change', updateBodyState);
         saveApiBtn.addEventListener('click', saveApi);
