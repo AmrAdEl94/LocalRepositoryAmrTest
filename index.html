@@ -865,6 +865,7 @@
             if (bearerTokenInput) bearerTokenInput.value = api.bearerToken || '';
             if (oauth2TokenName) oauth2TokenName.value = api.oauth2TokenName || '';
             if (oauth2CallbackUrl) oauth2CallbackUrl.value = api.oauth2CallbackUrl || '';
+            ensureOAuthCallbackUrl();
             if (oauth2AuthUrl) oauth2AuthUrl.value = api.oauth2AuthUrl || '';
             if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = api.oauth2AuthorizationCode || '';
             if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = api.oauth2AccessTokenUrl || '';
@@ -981,17 +982,35 @@
             }
         }
 
+        function getDefaultCallbackUrl() {
+            const url = new URL(window.location.href);
+            url.hash = '';
+            url.search = '';
+            if (!url.pathname.endsWith('/')) {
+                url.pathname = `${url.pathname}/`;
+            }
+            return url.toString();
+        }
+
+        function ensureOAuthCallbackUrl() {
+            if (oauth2CallbackUrl && !oauth2CallbackUrl.value.trim()) {
+                oauth2CallbackUrl.value = getDefaultCallbackUrl();
+            }
+            return oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '';
+        }
+
         function openOAuth2AuthorizationUrl() {
             const authUrlValue = oauth2AuthUrl.value.trim();
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
             }
+            const callbackUrl = ensureOAuthCallbackUrl();
             const authUrl = new URL(authUrlValue);
             authUrl.searchParams.set('response_type', 'code');
             if (oauth2ClientId.value.trim()) authUrl.searchParams.set('client_id', oauth2ClientId.value.trim());
             if (oauth2Scope.value.trim()) authUrl.searchParams.set('scope', oauth2Scope.value.trim());
             if (oauth2State.value.trim()) authUrl.searchParams.set('state', oauth2State.value.trim());
-            if (oauth2CallbackUrl.value.trim()) authUrl.searchParams.set('redirect_uri', oauth2CallbackUrl.value.trim());
+            if (callbackUrl) authUrl.searchParams.set('redirect_uri', callbackUrl);
             window.open(authUrl.toString(), '_blank', 'width=900,height=700');
         }
 
@@ -1004,6 +1023,7 @@
             const params = new URLSearchParams();
             const grantType = forceRefresh ? 'refresh_token' : oauth2GrantType.value;
             const useBodyClientAuthentication = oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked;
+            const callbackUrl = ensureOAuthCallbackUrl();
             if (forceRefresh) {
                 if (!oauth2RefreshToken.value.trim()) {
                     throw new Error('Enter a refresh token before refreshing the OAuth access token.');
@@ -1024,7 +1044,7 @@
                 }
                 params.append('code', oauth2AuthorizationCode.value.trim());
                 if (oauth2State.value.trim()) params.append('state', oauth2State.value.trim());
-                if (oauth2CallbackUrl.value.trim()) params.append('redirect_uri', oauth2CallbackUrl.value.trim());
+                if (callbackUrl) params.append('redirect_uri', callbackUrl);
             }
             if (grantType === 'password') {
                 if (oauth2Username.value.trim()) params.append('username', oauth2Username.value.trim());
@@ -1395,6 +1415,7 @@
             if (bearerTokenInput) bearerTokenInput.value = '';
             if (oauth2TokenName) oauth2TokenName.value = '';
             if (oauth2CallbackUrl) oauth2CallbackUrl.value = '';
+            ensureOAuthCallbackUrl();
             if (oauth2AuthUrl) oauth2AuthUrl.value = '';
             if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = '';
             if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = '';
@@ -1439,7 +1460,7 @@
         if (getOAuth2TokenBtn) {
             getOAuth2TokenBtn.addEventListener('click', async () => {
                 try {
-                    await fetchOAuth2Token(true);
+                    await fetchOAuth2Token(false);
                     alert('OAuth 2.0 token retrieved successfully.');
                 } catch (error) {
                     alert(error.message);
