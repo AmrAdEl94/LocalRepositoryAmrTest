@@ -999,7 +999,42 @@
             return oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '';
         }
 
-        function openOAuth2AuthorizationUrl() {
+        function extractOAuthCodeFromUrl(urlString) {
+            try {
+                const url = new URL(urlString, window.location.href);
+                const code = url.searchParams.get('code');
+                const error = url.searchParams.get('error');
+                const errorDescription = url.searchParams.get('error_description');
+                return { code, error, errorDescription };
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function applyOAuthCodeFromUrl(urlString) {
+            const { code, error, errorDescription } = extractOAuthCodeFromUrl(urlString);
+            if (error) {
+                throw new Error(errorDescription || error);
+            }
+            if (code) {
+                oauth2AuthorizationCode.value = code;
+                return code;
+            }
+            return '';
+        }
+
+        function cleanOAuthCallbackUrl() {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('code') || url.searchParams.has('error')) {
+                url.searchParams.delete('code');
+                url.searchParams.delete('error');
+                url.searchParams.delete('error_description');
+                url.searchParams.delete('state');
+                window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+            }
+        }
+
+        function buildOAuthAuthorizationUrl() {
             const authUrlValue = oauth2AuthUrl.value.trim();
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
@@ -1011,7 +1046,66 @@
             if (oauth2Scope.value.trim()) authUrl.searchParams.set('scope', oauth2Scope.value.trim());
             if (oauth2State.value.trim()) authUrl.searchParams.set('state', oauth2State.value.trim());
             if (callbackUrl) authUrl.searchParams.set('redirect_uri', callbackUrl);
-            window.open(authUrl.toString(), '_blank', 'width=900,height=700');
+            return authUrl.toString();
+        }
+
+        function openOAuth2AuthorizationUrl() {
+            const authUrl = buildOAuthAuthorizationUrl();
+            window.open(authUrl, '_blank', 'width=900,height=700');
+        }
+
+        function waitForOAuthCode(popup) {
+            return new Promise((resolve, reject) => {
+                const timeout = window.setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Authorization timed out. Please try again.'));
+                }, 300000);
+
+                const cleanup = () => {
+                    window.clearInterval(interval);
+                    window.clearTimeout(timeout);
+                };
+
+                const interval = window.setInterval(() => {
+                    if (!popup || popup.closed) {
+                        cleanup();
+                        reject(new Error('Authorization window was closed before completing sign-in.'));
+                        return;
+                    }
+                    try {
+                        const popupUrl = popup.location.href;
+                        if (popupUrl && popupUrl !== 'about:blank') {
+                            const code = applyOAuthCodeFromUrl(popupUrl);
+                            if (code) {
+                                cleanup();
+                                popup.close();
+                                resolve(code);
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        // Ignore cross-origin redirects until the popup lands back on the app URL.
+                    }
+                }, 1000);
+            });
+        }
+
+        async function authorizeAndFetchToken() {
+            if (oauth2GrantType.value !== 'authorization_code') {
+                return fetchOAuth2Token(false);
+            }
+            const authUrl = buildOAuthAuthorizationUrl();
+            const popup = window.open(authUrl, 'oauth2Popup', 'width=900,height=700');
+            if (!popup) {
+                throw new Error('Popup blocked. Please allow popups and try again.');
+            }
+            const code = await waitForOAuthCode(popup);
+            if (code) {
+                oauth2AuthorizationCode.value = code;
+                await fetchOAuth2Token(false);
+                return code;
+            }
+            throw new Error('No authorization code was returned.');
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
@@ -1460,7 +1554,7 @@
         if (getOAuth2TokenBtn) {
             getOAuth2TokenBtn.addEventListener('click', async () => {
                 try {
-                    await fetchOAuth2Token(false);
+                    await authorizeAndFetchToken();
                     alert('OAuth 2.0 token retrieved successfully.');
                 } catch (error) {
                     alert(error.message);
@@ -1499,6 +1593,22 @@
         sendRequestBtn.addEventListener('click', sendRequest);
 
         renderApiTable();
+
+        if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+            try {
+                applyOAuthCodeFromUrl(window.location.href);
+                cleanOAuthCallbackUrl();
+                if (oauth2AuthorizationCode.value.trim()) {
+                    fetchOAuth2Token(false).then(() => {
+                        alert('OAuth 2.0 token retrieved successfully.');
+                    }).catch((error) => {
+                        alert(error.message);
+                    });
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
     </script>
 </body>
 </html>
