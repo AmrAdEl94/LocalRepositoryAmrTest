@@ -992,6 +992,55 @@
             return url.toString();
         }
 
+        function saveOAuthFormState() {
+            const state = {
+                oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
+                oauth2AccessTokenUrl: oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '',
+                oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
+                oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
+                oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
+                oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2State: oauth2State ? oauth2State.value.trim() : '',
+                oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
+                oauth2AuthorizationCode: oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '',
+                oauth2RefreshToken: oauth2RefreshToken ? oauth2RefreshToken.value.trim() : '',
+                oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
+                oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
+                oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
+                oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
+                currentAuthType: currentAuthType
+            };
+            sessionStorage.setItem('oauth2FormState', JSON.stringify(state));
+        }
+
+        function restoreOAuthFormState() {
+            try {
+                const raw = sessionStorage.getItem('oauth2FormState');
+                if (!raw) return;
+                const state = JSON.parse(raw);
+                if (oauth2AuthUrl) oauth2AuthUrl.value = state.oauth2AuthUrl || '';
+                if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = state.oauth2AccessTokenUrl || '';
+                if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = state.oauth2RefreshTokenUrl || '';
+                if (oauth2ClientId) oauth2ClientId.value = state.oauth2ClientId || '';
+                if (oauth2ClientSecret) oauth2ClientSecret.value = state.oauth2ClientSecret || '';
+                if (oauth2Scope) oauth2Scope.value = state.oauth2Scope || '';
+                if (oauth2GrantType) oauth2GrantType.value = state.oauth2GrantType || 'client_credentials';
+                if (oauth2State) oauth2State.value = state.oauth2State || '';
+                if (oauth2CallbackUrl) oauth2CallbackUrl.value = state.oauth2CallbackUrl || '';
+                if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = state.oauth2AuthorizationCode || '';
+                if (oauth2RefreshToken) oauth2RefreshToken.value = state.oauth2RefreshToken || '';
+                if (oauth2Username) oauth2Username.value = state.oauth2Username || '';
+                if (oauth2Password) oauth2Password.value = state.oauth2Password || '';
+                if (oauth2AccessToken) oauth2AccessToken.value = state.oauth2AccessToken || '';
+                if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = state.oauth2SendClientCredentialsInBody !== undefined ? state.oauth2SendClientCredentialsInBody : true;
+                if (state.currentAuthType) currentAuthType = state.currentAuthType;
+                updateAuthTypeDisplay();
+            } catch (error) {
+                // Ignore malformed stored state.
+            }
+        }
+
         function ensureOAuthCallbackUrl() {
             if (oauth2CallbackUrl && !oauth2CallbackUrl.value.trim()) {
                 oauth2CallbackUrl.value = getDefaultCallbackUrl();
@@ -1072,6 +1121,7 @@
         }
 
         function buildOAuthAuthorizationUrl() {
+            saveOAuthFormState();
             const authUrlValue = oauth2AuthUrl.value.trim();
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
@@ -1128,6 +1178,7 @@
         }
 
         async function authorizeAndFetchToken() {
+            saveOAuthFormState();
             if (oauth2GrantType.value !== 'authorization_code') {
                 return fetchOAuth2Token(false);
             }
@@ -1630,6 +1681,7 @@
         saveApiBtn.addEventListener('click', saveApi);
         sendRequestBtn.addEventListener('click', sendRequest);
 
+        restoreOAuthFormState();
         renderApiTable();
 
         if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
