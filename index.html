@@ -542,14 +542,29 @@
                                     </div>
                                     <div id="oauth2Section" style="display: none; margin-top: 10px;">
                                         <div class="basic-auth-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
-                                            <input type="text" id="oauth2TokenUrl" placeholder="Token URL">
-                                            <input type="text" id="oauth2ClientId" placeholder="Client ID">
-                                            <input type="password" id="oauth2ClientSecret" placeholder="Client Secret">
-                                            <input type="text" id="oauth2Scope" placeholder="Scope (optional)">
+                                            <input type="text" id="oauth2TokenName" placeholder="Token Name">
                                             <select id="oauth2GrantType">
                                                 <option value="client_credentials">Client Credentials</option>
+                                                <option value="authorization_code">Authorization Code</option>
                                                 <option value="password">Password</option>
+                                                <option value="implicit">Implicit</option>
                                             </select>
+                                            <div id="oauth2CallbackUrlRow" style="grid-column: 1 / -1; display: none;">
+                                                <input type="text" id="oauth2CallbackUrl" placeholder="Callback URL">
+                                            </div>
+                                            <div id="oauth2AuthUrlRow" style="grid-column: 1 / -1; display: none;">
+                                                <input type="text" id="oauth2AuthUrl" placeholder="Auth URL">
+                                            </div>
+                                            <input type="text" id="oauth2AccessTokenUrl" placeholder="Access Token URL">
+                                            <input type="text" id="oauth2ClientId" placeholder="Client ID">
+                                            <input type="password" id="oauth2ClientSecret" placeholder="Client Secret">
+                                            <input type="text" id="oauth2Scope" placeholder="Scope">
+                                            <input type="text" id="oauth2State" placeholder="State" value="new">
+                                            <label style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                                                <input type="checkbox" id="oauth2SendClientCredentialsInBody" checked style="width: 16px; height: 16px;">
+                                                <span>Send client credentials in body</span>
+                                            </label>
+                                            <input type="text" id="oauth2RefreshTokenUrl" placeholder="Refresh Token URL">
                                             <div id="oauth2PasswordFields" style="display: none; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
                                                 <input type="text" id="oauth2Username" placeholder="Username (password grant)">
                                                 <input type="password" id="oauth2Password" placeholder="Password (password grant)">
@@ -747,15 +762,23 @@
         const bearerTokenInput = document.getElementById('bearerTokenInput');
         const pasteBearerTokenBtn = document.getElementById('pasteBearerTokenBtn');
         const oauth2Section = document.getElementById('oauth2Section');
-        const oauth2TokenUrl = document.getElementById('oauth2TokenUrl');
+        const oauth2TokenName = document.getElementById('oauth2TokenName');
+        const oauth2CallbackUrl = document.getElementById('oauth2CallbackUrl');
+        const oauth2AuthUrl = document.getElementById('oauth2AuthUrl');
+        const oauth2AccessTokenUrl = document.getElementById('oauth2AccessTokenUrl');
         const oauth2ClientId = document.getElementById('oauth2ClientId');
         const oauth2ClientSecret = document.getElementById('oauth2ClientSecret');
         const oauth2Scope = document.getElementById('oauth2Scope');
         const oauth2GrantType = document.getElementById('oauth2GrantType');
+        const oauth2State = document.getElementById('oauth2State');
+        const oauth2SendClientCredentialsInBody = document.getElementById('oauth2SendClientCredentialsInBody');
+        const oauth2RefreshTokenUrl = document.getElementById('oauth2RefreshTokenUrl');
         const oauth2Username = document.getElementById('oauth2Username');
         const oauth2Password = document.getElementById('oauth2Password');
         const oauth2AccessToken = document.getElementById('oauth2AccessToken');
         const oauth2PasswordFields = document.getElementById('oauth2PasswordFields');
+        const oauth2CallbackUrlRow = document.getElementById('oauth2CallbackUrlRow');
+        const oauth2AuthUrlRow = document.getElementById('oauth2AuthUrlRow');
         const getOAuth2TokenBtn = document.getElementById('getOAuth2TokenBtn');
         const refreshOAuth2TokenBtn = document.getElementById('refreshOAuth2TokenBtn');
 
@@ -831,11 +854,17 @@
             basicAuthUsername.value = api.basicAuthUsername || '';
             basicAuthPassword.value = api.basicAuthPassword || '';
             if (bearerTokenInput) bearerTokenInput.value = api.bearerToken || '';
-            if (oauth2TokenUrl) oauth2TokenUrl.value = api.oauth2TokenUrl || '';
+            if (oauth2TokenName) oauth2TokenName.value = api.oauth2TokenName || '';
+            if (oauth2CallbackUrl) oauth2CallbackUrl.value = api.oauth2CallbackUrl || '';
+            if (oauth2AuthUrl) oauth2AuthUrl.value = api.oauth2AuthUrl || '';
+            if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = api.oauth2AccessTokenUrl || '';
             if (oauth2ClientId) oauth2ClientId.value = api.oauth2ClientId || '';
             if (oauth2ClientSecret) oauth2ClientSecret.value = api.oauth2ClientSecret || '';
             if (oauth2Scope) oauth2Scope.value = api.oauth2Scope || '';
             if (oauth2GrantType) oauth2GrantType.value = api.oauth2GrantType || 'client_credentials';
+            if (oauth2State) oauth2State.value = api.oauth2State || 'new';
+            if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = api.oauth2SendClientCredentialsInBody !== undefined ? api.oauth2SendClientCredentialsInBody : true;
+            if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = api.oauth2RefreshTokenUrl || '';
             if (oauth2Username) oauth2Username.value = api.oauth2Username || '';
             if (oauth2Password) oauth2Password.value = api.oauth2Password || '';
             if (oauth2AccessToken) oauth2AccessToken.value = api.oauth2AccessToken || '';
@@ -930,12 +959,18 @@
             if (oauth2PasswordFields) {
                 oauth2PasswordFields.style.display = oauth2GrantType && oauth2GrantType.value === 'password' ? 'grid' : 'none';
             }
+            if (oauth2CallbackUrlRow) {
+                oauth2CallbackUrlRow.style.display = oauth2GrantType && ['authorization_code', 'implicit'].includes(oauth2GrantType.value) ? 'block' : 'none';
+            }
+            if (oauth2AuthUrlRow) {
+                oauth2AuthUrlRow.style.display = oauth2GrantType && ['authorization_code', 'implicit'].includes(oauth2GrantType.value) ? 'block' : 'none';
+            }
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
-            const tokenUrl = oauth2TokenUrl.value.trim();
+            const tokenUrl = (forceRefresh && oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) ? oauth2RefreshTokenUrl.value.trim() : oauth2AccessTokenUrl.value.trim();
             if (!tokenUrl) {
-                throw new Error('Enter a token URL before requesting an OAuth 2.0 token.');
+                throw new Error('Enter an Access Token URL before requesting an OAuth 2.0 token.');
             }
 
             const params = new URLSearchParams();
@@ -943,6 +978,8 @@
             if (oauth2ClientId.value.trim()) params.append('client_id', oauth2ClientId.value.trim());
             if (oauth2ClientSecret.value.trim()) params.append('client_secret', oauth2ClientSecret.value.trim());
             if (oauth2Scope.value.trim()) params.append('scope', oauth2Scope.value.trim());
+            if (oauth2State.value.trim()) params.append('state', oauth2State.value.trim());
+            if (oauth2CallbackUrl.value.trim()) params.append('redirect_uri', oauth2CallbackUrl.value.trim());
             if (oauth2GrantType.value === 'password') {
                 if (oauth2Username.value.trim()) params.append('username', oauth2Username.value.trim());
                 if (oauth2Password.value.trim()) params.append('password', oauth2Password.value.trim());
@@ -952,13 +989,21 @@
                 return oauth2AccessToken.value.trim();
             }
 
-            const response = await fetch(tokenUrl, {
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+            const body = params.toString();
+            const requestOptions = {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: params.toString()
-            });
+                headers,
+                body
+            };
+
+            if (!oauth2SendClientCredentialsInBody.checked) {
+                headers['Authorization'] = 'Basic ' + btoa(`${oauth2ClientId.value.trim()}:${oauth2ClientSecret.value.trim()}`);
+            }
+
+            const response = await fetch(tokenUrl, requestOptions);
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
                 throw new Error(data.error_description || data.error || `OAuth 2.0 token request failed (${response.status}).`);
@@ -1078,11 +1123,17 @@
                 basicAuthUsername: basicAuthUsername.value.trim(),
                 basicAuthPassword: basicAuthPassword.value.trim(),
                 bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
-                oauth2TokenUrl: oauth2TokenUrl ? oauth2TokenUrl.value.trim() : '',
+                oauth2TokenName: oauth2TokenName ? oauth2TokenName.value.trim() : '',
+                oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
+                oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
+                oauth2AccessTokenUrl: oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '',
                 oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
                 oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
                 oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
                 oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
+                oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
+                oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
                 oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
                 oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
                 oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
@@ -1140,11 +1191,17 @@
                 basicAuthUsername: basicAuthUsername.value.trim(),
                 basicAuthPassword: basicAuthPassword.value.trim(),
                 bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
-                oauth2TokenUrl: oauth2TokenUrl ? oauth2TokenUrl.value.trim() : '',
+                oauth2TokenName: oauth2TokenName ? oauth2TokenName.value.trim() : '',
+                oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
+                oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
+                oauth2AccessTokenUrl: oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '',
                 oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
                 oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
                 oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
                 oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
+                oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
+                oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
                 oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
                 oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
                 oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
@@ -1280,11 +1337,17 @@
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
             if (bearerTokenInput) bearerTokenInput.value = '';
-            if (oauth2TokenUrl) oauth2TokenUrl.value = '';
+            if (oauth2TokenName) oauth2TokenName.value = '';
+            if (oauth2CallbackUrl) oauth2CallbackUrl.value = '';
+            if (oauth2AuthUrl) oauth2AuthUrl.value = '';
+            if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = '';
             if (oauth2ClientId) oauth2ClientId.value = '';
             if (oauth2ClientSecret) oauth2ClientSecret.value = '';
             if (oauth2Scope) oauth2Scope.value = '';
             if (oauth2GrantType) oauth2GrantType.value = 'client_credentials';
+            if (oauth2State) oauth2State.value = 'new';
+            if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = true;
+            if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = '';
             if (oauth2Username) oauth2Username.value = '';
             if (oauth2Password) oauth2Password.value = '';
             if (oauth2AccessToken) oauth2AccessToken.value = '';
