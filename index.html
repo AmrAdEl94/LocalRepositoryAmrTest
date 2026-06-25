@@ -550,10 +550,18 @@
                                                 <option value="client_credentials">Client Credentials</option>
                                                 <option value="password">Password</option>
                                             </select>
-                                            <input type="text" id="oauth2Username" placeholder="Username (password grant)">
-                                            <input type="password" id="oauth2Password" placeholder="Password (password grant)">
-                                            <input type="text" id="oauth2AccessToken" placeholder="Access token (optional)">
-                                            <button type="button" id="getOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Get Token</button>
+                                            <div id="oauth2PasswordFields" style="display: none; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                                                <input type="text" id="oauth2Username" placeholder="Username (password grant)">
+                                                <input type="password" id="oauth2Password" placeholder="Password (password grant)">
+                                            </div>
+                                            <div style="grid-column: 1 / -1; display: grid; gap: 8px;">
+                                                <label for="oauth2AccessToken" style="font-size: 12px;">Access token</label>
+                                                <textarea id="oauth2AccessToken" rows="3" placeholder="Access token will appear here after you request it"></textarea>
+                                            </div>
+                                            <div style="grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;">
+                                                <button type="button" id="getOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Get Token</button>
+                                                <button type="button" id="refreshOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Refresh Token</button>
+                                            </div>
                                         </div>
                                     </div>
                                     <table class="headers-table">
@@ -747,7 +755,9 @@
         const oauth2Username = document.getElementById('oauth2Username');
         const oauth2Password = document.getElementById('oauth2Password');
         const oauth2AccessToken = document.getElementById('oauth2AccessToken');
+        const oauth2PasswordFields = document.getElementById('oauth2PasswordFields');
         const getOAuth2TokenBtn = document.getElementById('getOAuth2TokenBtn');
+        const refreshOAuth2TokenBtn = document.getElementById('refreshOAuth2TokenBtn');
 
         
         const apiList = [
@@ -917,9 +927,12 @@
             if (oauth2Section) {
                 oauth2Section.style.display = currentAuthType === 'oauth2' ? 'block' : 'none';
             }
+            if (oauth2PasswordFields) {
+                oauth2PasswordFields.style.display = oauth2GrantType && oauth2GrantType.value === 'password' ? 'grid' : 'none';
+            }
         }
 
-        async function fetchOAuth2Token() {
+        async function fetchOAuth2Token(forceRefresh = false) {
             const tokenUrl = oauth2TokenUrl.value.trim();
             if (!tokenUrl) {
                 throw new Error('Enter a token URL before requesting an OAuth 2.0 token.');
@@ -933,6 +946,10 @@
             if (oauth2GrantType.value === 'password') {
                 if (oauth2Username.value.trim()) params.append('username', oauth2Username.value.trim());
                 if (oauth2Password.value.trim()) params.append('password', oauth2Password.value.trim());
+            }
+
+            if (!forceRefresh && oauth2AccessToken.value.trim()) {
+                return oauth2AccessToken.value.trim();
             }
 
             const response = await fetch(tokenUrl, {
@@ -1301,12 +1318,27 @@
         if (getOAuth2TokenBtn) {
             getOAuth2TokenBtn.addEventListener('click', async () => {
                 try {
-                    await fetchOAuth2Token();
+                    await fetchOAuth2Token(true);
                     alert('OAuth 2.0 token retrieved successfully.');
                 } catch (error) {
                     alert(error.message);
                 }
             });
+        }
+
+        if (refreshOAuth2TokenBtn) {
+            refreshOAuth2TokenBtn.addEventListener('click', async () => {
+                try {
+                    await fetchOAuth2Token(true);
+                    alert('OAuth 2.0 token refreshed successfully.');
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+
+        if (oauth2GrantType) {
+            oauth2GrantType.addEventListener('change', updateAuthTypeDisplay);
         }
 
         apiMethodInput.addEventListener('change', updateBodyState);
