@@ -890,6 +890,7 @@
         let currentAuthType = 'none';
         let tokenList = [];
         let currentTokenIndex = null;
+        let pendingOAuthAuthorizationCode = '';
 
         function loadTokens() {
             try {
@@ -1347,7 +1348,11 @@
                 throw new Error(errorDescription || error);
             }
             if (code) {
-                oauth2AuthorizationCode.value = code;
+                pendingOAuthAuthorizationCode = code;
+                if (oauth2AuthorizationCode) {
+                    oauth2AuthorizationCode.value = code;
+                }
+                localStorage.setItem('oauth2PendingCode', code);
                 return code;
             }
             return '';
@@ -1404,20 +1409,22 @@
 
         function persistOAuthTokenState(token, refreshToken) {
             if (oauth2AccessToken) oauth2AccessToken.value = token || '';
+            if (tokenValueInput) tokenValueInput.value = token || '';
             if (oauth2RefreshToken && refreshToken) oauth2RefreshToken.value = refreshToken;
             localStorage.setItem('oauth2LatestToken', token || '');
             localStorage.setItem('oauth2LatestRefreshToken', refreshToken || '');
             localStorage.setItem('oauth2AuthFinished', 'true');
-            if (oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
-                localStorage.setItem('oauth2PendingCode', oauth2AuthorizationCode.value.trim());
+            const pendingCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '');
+            if (pendingCode) {
+                localStorage.setItem('oauth2PendingCode', pendingCode);
             }
             if (window.opener && !window.opener.closed) {
                 try {
                     window.opener.localStorage.setItem('oauth2LatestToken', token || '');
                     window.opener.localStorage.setItem('oauth2LatestRefreshToken', refreshToken || '');
                     window.opener.localStorage.setItem('oauth2AuthFinished', 'true');
-                    if (oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
-                        window.opener.localStorage.setItem('oauth2PendingCode', oauth2AuthorizationCode.value.trim());
+                    if (pendingCode) {
+                        window.opener.localStorage.setItem('oauth2PendingCode', pendingCode);
                     }
                     syncOAuthTokenToWindow(window.opener, token, refreshToken);
                 } catch (error) {
@@ -1488,7 +1495,10 @@
             }
             const code = await waitForOAuthCode(popup);
             if (code) {
-                oauth2AuthorizationCode.value = code;
+                pendingOAuthAuthorizationCode = code;
+                if (oauth2AuthorizationCode) {
+                    oauth2AuthorizationCode.value = code;
+                }
                 localStorage.setItem('oauth2PendingCode', code);
                 await fetchOAuth2Token(false);
                 return code;
@@ -1509,6 +1519,8 @@
             const grantType = forceRefresh ? 'refresh_token' : oauth2GrantType.value;
             const useBodyClientAuthentication = oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked;
             const callbackUrl = ensureOAuthCallbackUrl();
+            const activeAuthorizationCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim();
+            const activeAccessToken = (oauth2AccessToken && oauth2AccessToken.value.trim()) || (tokenValueInput ? tokenValueInput.value.trim() : '');
             if (forceRefresh) {
                 if (!oauth2RefreshToken.value.trim()) {
                     throw new Error('Enter a refresh token before refreshing the OAuth access token.');
@@ -1524,10 +1536,10 @@
             }
             if (oauth2Scope.value.trim()) params.append('scope', oauth2Scope.value.trim());
             if (grantType === 'authorization_code') {
-                if (!oauth2AuthorizationCode.value.trim()) {
+                if (!activeAuthorizationCode) {
                     throw new Error('Enter an authorization code before exchanging it for a token.');
                 }
-                params.append('code', oauth2AuthorizationCode.value.trim());
+                params.append('code', activeAuthorizationCode);
                 if (oauth2State.value.trim()) params.append('state', oauth2State.value.trim());
                 if (callbackUrl) params.append('redirect_uri', callbackUrl);
             }
@@ -1536,8 +1548,8 @@
                 if (oauth2Password.value.trim()) params.append('password', oauth2Password.value.trim());
             }
 
-            if (!forceRefresh && oauth2AccessToken.value.trim()) {
-                return oauth2AccessToken.value.trim();
+            if (!forceRefresh && activeAccessToken) {
+                return activeAccessToken;
             }
 
             const headers = {
@@ -1568,7 +1580,9 @@
             if (!data.access_token) {
                 throw new Error('No access token was returned by the OAuth 2.0 server.');
             }
-            oauth2AccessToken.value = data.access_token;
+            if (oauth2AccessToken) {
+                oauth2AccessToken.value = data.access_token;
+            }
             if (tokenValueInput) {
                 tokenValueInput.value = data.access_token;
             }
