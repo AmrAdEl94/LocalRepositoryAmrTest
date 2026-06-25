@@ -383,7 +383,7 @@
     </div>
 
     <div class="main-content">
-        <div class="version-indicator">Version 0.1.0001</div>
+        <div class="version-indicator">Version 0.1.0002</div>
         <div class="header">
             <button class="toggle-btn" id="toggleBtn">☰</button>
             <h1>WxCC Search API</h1>
@@ -1248,7 +1248,7 @@
         }
 
         function inferOAuthTokenUrl() {
-            const authUrlValue = oauth2AuthUrl.value.trim();
+            const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
             if (!authUrlValue) {
                 return '';
             }
