@@ -695,11 +695,11 @@
             <div id="tokens" class="page hidden">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">Token Manager</h5>
+                        <h5 class="card-title">OAuth 2.0 Token Manager</h5>
                     </div>
                     <div class="card-body token-manager-section">
                         <div class="toolbar">
-                            <button id="newTokenBtn" class="btn btn-primary">Add Token</button>
+                            <button id="newTokenBtn" class="btn btn-primary">New OAuth Token</button>
                         </div>
                         <div class="token-form">
                             <div class="field-row">
@@ -707,28 +707,52 @@
                                 <input id="tokenNameInput" type="text" placeholder="Example: Webex Access Token">
                             </div>
                             <div class="field-row">
-                                <label for="tokenTypeSelect">Token Type</label>
-                                <select id="tokenTypeSelect">
-                                    <option value="Bearer">Bearer</option>
-                                    <option value="Basic">Basic</option>
-                                    <option value="Custom">Custom</option>
+                                <label for="tokenAuthUrlInput">Authorization URL</label>
+                                <input id="tokenAuthUrlInput" type="text" placeholder="https://.../authorize">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenAccessUrlInput">Access Token URL</label>
+                                <input id="tokenAccessUrlInput" type="text" placeholder="https://.../access_token">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenClientIdInput">Client ID</label>
+                                <input id="tokenClientIdInput" type="text" placeholder="Client ID">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenClientSecretInput">Client Secret</label>
+                                <input id="tokenClientSecretInput" type="password" placeholder="Client Secret">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenScopeInput">Scope</label>
+                                <input id="tokenScopeInput" type="text" placeholder="Scope">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenCallbackInput">Callback URL</label>
+                                <input id="tokenCallbackInput" type="text" placeholder="https://your-site/">
+                            </div>
+                            <div class="field-row">
+                                <label for="tokenGrantTypeSelect">Grant Type</label>
+                                <select id="tokenGrantTypeSelect">
+                                    <option value="client_credentials">Client Credentials</option>
+                                    <option value="authorization_code">Authorization Code</option>
                                 </select>
                             </div>
-                            <div class="field-row">
-                                <label for="tokenValueInput">Token Value</label>
-                                <input id="tokenValueInput" type="text" placeholder="Paste token value here">
+                            <div class="field-row" style="grid-column: 1 / -1;">
+                                <label for="tokenValueInput">Access Token</label>
+                                <textarea id="tokenValueInput" rows="3" placeholder="Generated token will appear here"></textarea>
                             </div>
-                            <div class="field-row">
-                                <label>&nbsp;</label>
+                            <div class="field-row" style="grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button id="saveTokenBtn" class="btn btn-secondary">Save Token</button>
+                                <button id="generateTokenBtn" class="btn btn-primary">Generate Token</button>
+                                <button id="openTokenAuthBtn" class="btn btn-secondary">Open Auth URL</button>
                             </div>
                         </div>
                         <table class="token-table" id="tokenTable">
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Value</th>
+                                    <th>Grant</th>
+                                    <th>Token</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -839,9 +863,17 @@
         const tokenTableBody = document.getElementById('tokenTableBody');
         const tokenNameInput = document.getElementById('tokenNameInput');
         const tokenValueInput = document.getElementById('tokenValueInput');
-        const tokenTypeSelect = document.getElementById('tokenTypeSelect');
+        const tokenAuthUrlInput = document.getElementById('tokenAuthUrlInput');
+        const tokenAccessUrlInput = document.getElementById('tokenAccessUrlInput');
+        const tokenClientIdInput = document.getElementById('tokenClientIdInput');
+        const tokenClientSecretInput = document.getElementById('tokenClientSecretInput');
+        const tokenScopeInput = document.getElementById('tokenScopeInput');
+        const tokenCallbackInput = document.getElementById('tokenCallbackInput');
+        const tokenGrantTypeSelect = document.getElementById('tokenGrantTypeSelect');
         const saveTokenBtn = document.getElementById('saveTokenBtn');
         const newTokenBtn = document.getElementById('newTokenBtn');
+        const generateTokenBtn = document.getElementById('generateTokenBtn');
+        const openTokenAuthBtn = document.getElementById('openTokenAuthBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
         const responseStatus = document.getElementById('responseStatus');
@@ -928,7 +960,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${escapeHtml(token.name || 'Untitled Token')}</td>
-                    <td>${escapeHtml(token.type || 'Bearer')}</td>
+                    <td>${escapeHtml(token.grantType || 'client_credentials')}</td>
                     <td>${escapeHtml(token.value || '')}</td>
                     <td>
                         <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
@@ -941,8 +973,14 @@
                     const index = Number(button.dataset.tokenIndex);
                     currentTokenIndex = index;
                     tokenNameInput.value = tokenList[index].name || '';
+                    tokenAuthUrlInput.value = tokenList[index].authUrl || '';
+                    tokenAccessUrlInput.value = tokenList[index].accessTokenUrl || '';
+                    tokenClientIdInput.value = tokenList[index].clientId || '';
+                    tokenClientSecretInput.value = tokenList[index].clientSecret || '';
+                    tokenScopeInput.value = tokenList[index].scope || '';
+                    tokenCallbackInput.value = tokenList[index].callbackUrl || '';
+                    tokenGrantTypeSelect.value = tokenList[index].grantType || 'client_credentials';
                     tokenValueInput.value = tokenList[index].value || '';
-                    tokenTypeSelect.value = tokenList[index].type || 'Bearer';
                 });
             });
             populateTokenReferenceSelect();
@@ -951,7 +989,7 @@
         function populateTokenReferenceSelect() {
             if (!apiTokenReference) return;
             const currentValue = apiTokenReference.value;
-            apiTokenReference.innerHTML = '<option value="">Select a saved token</option>';
+            apiTokenReference.innerHTML = '<option value="">Select a saved OAuth token</option>';
             tokenList.forEach(token => {
                 const option = document.createElement('option');
                 option.value = token.name;
@@ -966,22 +1004,38 @@
         function resetTokenForm() {
             currentTokenIndex = null;
             if (tokenNameInput) tokenNameInput.value = '';
+            if (tokenAuthUrlInput) tokenAuthUrlInput.value = '';
+            if (tokenAccessUrlInput) tokenAccessUrlInput.value = '';
+            if (tokenClientIdInput) tokenClientIdInput.value = '';
+            if (tokenClientSecretInput) tokenClientSecretInput.value = '';
+            if (tokenScopeInput) tokenScopeInput.value = '';
+            if (tokenCallbackInput) tokenCallbackInput.value = '';
+            if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = 'client_credentials';
             if (tokenValueInput) tokenValueInput.value = '';
-            if (tokenTypeSelect) tokenTypeSelect.value = 'Bearer';
         }
 
         function saveToken() {
             const name = tokenNameInput.value.trim();
             const value = tokenValueInput.value.trim();
-            const type = tokenTypeSelect.value;
-            if (!name || !value) {
-                alert('Enter a token name and value before saving.');
+            if (!name) {
+                alert('Enter a token name before saving.');
                 return;
             }
+            const tokenData = {
+                name,
+                authUrl: tokenAuthUrlInput.value.trim(),
+                accessTokenUrl: tokenAccessUrlInput.value.trim(),
+                clientId: tokenClientIdInput.value.trim(),
+                clientSecret: tokenClientSecretInput.value.trim(),
+                scope: tokenScopeInput.value.trim(),
+                callbackUrl: tokenCallbackInput.value.trim(),
+                grantType: tokenGrantTypeSelect.value,
+                value
+            };
             if (currentTokenIndex === null) {
-                tokenList.push({ name, value, type });
+                tokenList.push(tokenData);
             } else {
-                tokenList[currentTokenIndex] = { name, value, type };
+                tokenList[currentTokenIndex] = tokenData;
             }
             saveTokens();
             renderTokenTable();
@@ -1913,11 +1967,84 @@
             oauth2GrantType.addEventListener('change', updateAuthTypeDisplay);
         }
 
+        if (saveTokenBtn) saveTokenBtn.addEventListener('click', saveToken);
+        if (newTokenBtn) newTokenBtn.addEventListener('click', resetTokenForm);
+        if (generateTokenBtn) {
+            generateTokenBtn.addEventListener('click', async () => {
+                try {
+                    if (!tokenNameInput.value.trim()) {
+                        throw new Error('Enter a token name before generating an OAuth token.');
+                    }
+                    if (!tokenAccessUrlInput.value.trim()) {
+                        throw new Error('Enter an Access Token URL before generating an OAuth token.');
+                    }
+                    const params = new URLSearchParams();
+                    params.append('grant_type', tokenGrantTypeSelect.value || 'client_credentials');
+                    if (tokenClientIdInput.value.trim()) params.append('client_id', tokenClientIdInput.value.trim());
+                    if (tokenClientSecretInput.value.trim()) params.append('client_secret', tokenClientSecretInput.value.trim());
+                    if (tokenScopeInput.value.trim()) params.append('scope', tokenScopeInput.value.trim());
+                    if (tokenCallbackInput.value.trim()) params.append('redirect_uri', tokenCallbackInput.value.trim());
+                    const response = await fetch(tokenAccessUrlInput.value.trim(), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    });
+                    const responseText = await response.text();
+                    let data = {};
+                    try { data = JSON.parse(responseText); } catch (error) { data = {}; }
+                    if (!response.ok) {
+                        throw new Error(data.error_description || data.error || data.message || responseText || 'OAuth token generation failed.');
+                    }
+                    if (!data.access_token) {
+                        throw new Error('No access token was returned by the OAuth 2.0 server.');
+                    }
+                    tokenValueInput.value = data.access_token;
+                    const tokenData = {
+                        name: tokenNameInput.value.trim(),
+                        authUrl: tokenAuthUrlInput.value.trim(),
+                        accessTokenUrl: tokenAccessUrlInput.value.trim(),
+                        clientId: tokenClientIdInput.value.trim(),
+                        clientSecret: tokenClientSecretInput.value.trim(),
+                        scope: tokenScopeInput.value.trim(),
+                        callbackUrl: tokenCallbackInput.value.trim(),
+                        grantType: tokenGrantTypeSelect.value,
+                        value: data.access_token
+                    };
+                    if (currentTokenIndex === null) {
+                        tokenList.push(tokenData);
+                    } else {
+                        tokenList[currentTokenIndex] = tokenData;
+                    }
+                    saveTokens();
+                    renderTokenTable();
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+        if (openTokenAuthBtn) {
+            openTokenAuthBtn.addEventListener('click', () => {
+                const authUrlValue = tokenAuthUrlInput.value.trim();
+                if (!authUrlValue) {
+                    alert('Enter an Authorization URL before opening the sign-in page.');
+                    return;
+                }
+                const authUrl = new URL(authUrlValue);
+                authUrl.searchParams.set('response_type', 'code');
+                if (tokenClientIdInput.value.trim()) authUrl.searchParams.set('client_id', tokenClientIdInput.value.trim());
+                if (tokenScopeInput.value.trim()) authUrl.searchParams.set('scope', tokenScopeInput.value.trim());
+                if (tokenCallbackInput.value.trim()) authUrl.searchParams.set('redirect_uri', tokenCallbackInput.value.trim());
+                window.open(authUrl.toString(), '_blank', 'width=900,height=700');
+            });
+        }
+
         apiMethodInput.addEventListener('change', updateBodyState);
         apiBodyFormatInput.addEventListener('change', updateBodyState);
         saveApiBtn.addEventListener('click', saveApi);
         sendRequestBtn.addEventListener('click', sendRequest);
 
+        loadTokens();
+        renderTokenTable();
         restoreOAuthFormState();
         renderApiTable();
 
