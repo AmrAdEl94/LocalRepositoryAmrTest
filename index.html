@@ -524,6 +524,9 @@
                                         <div class="auth-group">
                                             <label><input type="radio" name="authType" value="bearer"> Bearer Token</label>
                                         </div>
+                                        <div class="auth-group">
+                                            <label><input type="radio" name="authType" value="oauth2"> OAuth 2.0</label>
+                                        </div>
                                     </div>
                                     <div id="basicAuthSection" style="display: none;">
                                         <div class="basic-auth-inputs">
@@ -535,6 +538,22 @@
                                         <div class="basic-auth-inputs">
                                             <input type="text" id="bearerTokenInput" placeholder="Bearer token">
                                             <button type="button" id="pasteBearerTokenBtn" class="btn btn-secondary" style="width:auto;">Paste from Clipboard</button>
+                                        </div>
+                                    </div>
+                                    <div id="oauth2Section" style="display: none; margin-top: 10px;">
+                                        <div class="basic-auth-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                                            <input type="text" id="oauth2TokenUrl" placeholder="Token URL">
+                                            <input type="text" id="oauth2ClientId" placeholder="Client ID">
+                                            <input type="password" id="oauth2ClientSecret" placeholder="Client Secret">
+                                            <input type="text" id="oauth2Scope" placeholder="Scope (optional)">
+                                            <select id="oauth2GrantType">
+                                                <option value="client_credentials">Client Credentials</option>
+                                                <option value="password">Password</option>
+                                            </select>
+                                            <input type="text" id="oauth2Username" placeholder="Username (password grant)">
+                                            <input type="password" id="oauth2Password" placeholder="Password (password grant)">
+                                            <input type="text" id="oauth2AccessToken" placeholder="Access token (optional)">
+                                            <button type="button" id="getOAuth2TokenBtn" class="btn btn-secondary" style="width:auto;">Get Token</button>
                                         </div>
                                     </div>
                                     <table class="headers-table">
@@ -719,6 +738,16 @@
         const bearerAuthSection = document.getElementById('bearerAuthSection');
         const bearerTokenInput = document.getElementById('bearerTokenInput');
         const pasteBearerTokenBtn = document.getElementById('pasteBearerTokenBtn');
+        const oauth2Section = document.getElementById('oauth2Section');
+        const oauth2TokenUrl = document.getElementById('oauth2TokenUrl');
+        const oauth2ClientId = document.getElementById('oauth2ClientId');
+        const oauth2ClientSecret = document.getElementById('oauth2ClientSecret');
+        const oauth2Scope = document.getElementById('oauth2Scope');
+        const oauth2GrantType = document.getElementById('oauth2GrantType');
+        const oauth2Username = document.getElementById('oauth2Username');
+        const oauth2Password = document.getElementById('oauth2Password');
+        const oauth2AccessToken = document.getElementById('oauth2AccessToken');
+        const getOAuth2TokenBtn = document.getElementById('getOAuth2TokenBtn');
 
         
         const apiList = [
@@ -788,10 +817,18 @@
             } catch (e) {
                 currentHeaders = {};
             }
-            currentAuthType = 'none';
-            basicAuthUsername.value = '';
-            basicAuthPassword.value = '';
-            if (bearerTokenInput) bearerTokenInput.value = '';
+            currentAuthType = api.authType || 'none';
+            basicAuthUsername.value = api.basicAuthUsername || '';
+            basicAuthPassword.value = api.basicAuthPassword || '';
+            if (bearerTokenInput) bearerTokenInput.value = api.bearerToken || '';
+            if (oauth2TokenUrl) oauth2TokenUrl.value = api.oauth2TokenUrl || '';
+            if (oauth2ClientId) oauth2ClientId.value = api.oauth2ClientId || '';
+            if (oauth2ClientSecret) oauth2ClientSecret.value = api.oauth2ClientSecret || '';
+            if (oauth2Scope) oauth2Scope.value = api.oauth2Scope || '';
+            if (oauth2GrantType) oauth2GrantType.value = api.oauth2GrantType || 'client_credentials';
+            if (oauth2Username) oauth2Username.value = api.oauth2Username || '';
+            if (oauth2Password) oauth2Password.value = api.oauth2Password || '';
+            if (oauth2AccessToken) oauth2AccessToken.value = api.oauth2AccessToken || '';
             renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
@@ -877,6 +914,43 @@
             if (bearerAuthSection) {
                 bearerAuthSection.style.display = currentAuthType === 'bearer' ? 'block' : 'none';
             }
+            if (oauth2Section) {
+                oauth2Section.style.display = currentAuthType === 'oauth2' ? 'block' : 'none';
+            }
+        }
+
+        async function fetchOAuth2Token() {
+            const tokenUrl = oauth2TokenUrl.value.trim();
+            if (!tokenUrl) {
+                throw new Error('Enter a token URL before requesting an OAuth 2.0 token.');
+            }
+
+            const params = new URLSearchParams();
+            params.append('grant_type', oauth2GrantType.value);
+            if (oauth2ClientId.value.trim()) params.append('client_id', oauth2ClientId.value.trim());
+            if (oauth2ClientSecret.value.trim()) params.append('client_secret', oauth2ClientSecret.value.trim());
+            if (oauth2Scope.value.trim()) params.append('scope', oauth2Scope.value.trim());
+            if (oauth2GrantType.value === 'password') {
+                if (oauth2Username.value.trim()) params.append('username', oauth2Username.value.trim());
+                if (oauth2Password.value.trim()) params.append('password', oauth2Password.value.trim());
+            }
+
+            const response = await fetch(tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params.toString()
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error_description || data.error || `OAuth 2.0 token request failed (${response.status}).`);
+            }
+            if (!data.access_token) {
+                throw new Error('No access token was returned by the OAuth 2.0 server.');
+            }
+            oauth2AccessToken.value = data.access_token;
+            return data.access_token;
         }
 
         function escapeHtml(text) {
@@ -983,6 +1057,18 @@
                 url: apiUrlInput.value.trim(),
                 params: JSON.stringify(currentParams),
                 headers: JSON.stringify(currentHeaders),
+                authType: currentAuthType,
+                basicAuthUsername: basicAuthUsername.value.trim(),
+                basicAuthPassword: basicAuthPassword.value.trim(),
+                bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
+                oauth2TokenUrl: oauth2TokenUrl ? oauth2TokenUrl.value.trim() : '',
+                oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
+                oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
+                oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
+                oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
+                oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -1033,6 +1119,18 @@
                 url: apiUrlInput.value.trim(),
                 params: JSON.stringify(currentParams),
                 headers: JSON.stringify(currentHeaders),
+                authType: currentAuthType,
+                basicAuthUsername: basicAuthUsername.value.trim(),
+                basicAuthPassword: basicAuthPassword.value.trim(),
+                bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
+                oauth2TokenUrl: oauth2TokenUrl ? oauth2TokenUrl.value.trim() : '',
+                oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
+                oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
+                oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
+                oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
+                oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
                 bodyFormat: apiBodyFormatInput.value,
                 body: apiBodyInput.value.trim()
             };
@@ -1046,7 +1144,6 @@
             const paramsMap = JSON.parse(api.params || '{}');
             const headersMap = JSON.parse(api.headers || '{}');
             
-            // Add Basic Auth or Bearer header if selected
             if (currentAuthType === 'basic') {
                 const username = basicAuthUsername.value.trim();
                 const password = basicAuthPassword.value.trim();
@@ -1061,21 +1158,32 @@
                         headersMap['Authorization'] = `Bearer ${token}`;
                     }
                 }
-            }
-                    if (pasteBearerTokenBtn) {
-                        pasteBearerTokenBtn.addEventListener('click', async () => {
-                            if (navigator.clipboard) {
-                                try {
-                                    const text = await navigator.clipboard.readText();
-                                    bearerTokenInput.value = text;
-                                } catch (err) {
-                                    alert('Failed to read clipboard: ' + err.message);
-                                }
-                            } else {
-                                alert('Clipboard API not supported.');
-                            }
-                        });
+            } else if (currentAuthType === 'oauth2') {
+                try {
+                    const token = oauth2AccessToken.value.trim() || await fetchOAuth2Token();
+                    if (token) {
+                        headersMap['Authorization'] = `Bearer ${token}`;
                     }
+                } catch (error) {
+                    alert(error.message);
+                    return;
+                }
+            }
+
+            if (pasteBearerTokenBtn) {
+                pasteBearerTokenBtn.addEventListener('click', async () => {
+                    if (navigator.clipboard) {
+                        try {
+                            const text = await navigator.clipboard.readText();
+                            bearerTokenInput.value = text;
+                        } catch (err) {
+                            alert('Failed to read clipboard: ' + err.message);
+                        }
+                    } else {
+                        alert('Clipboard API not supported.');
+                    }
+                });
+            }
             
             let requestUrl = api.url;
             const query = buildQueryString(paramsMap);
@@ -1155,6 +1263,14 @@
             basicAuthUsername.value = '';
             basicAuthPassword.value = '';
             if (bearerTokenInput) bearerTokenInput.value = '';
+            if (oauth2TokenUrl) oauth2TokenUrl.value = '';
+            if (oauth2ClientId) oauth2ClientId.value = '';
+            if (oauth2ClientSecret) oauth2ClientSecret.value = '';
+            if (oauth2Scope) oauth2Scope.value = '';
+            if (oauth2GrantType) oauth2GrantType.value = 'client_credentials';
+            if (oauth2Username) oauth2Username.value = '';
+            if (oauth2Password) oauth2Password.value = '';
+            if (oauth2AccessToken) oauth2AccessToken.value = '';
             renderParamsTable();
             renderHeadersTable();
             updateAuthTypeDisplay();
@@ -1181,6 +1297,17 @@
                 updateAuthTypeDisplay();
             });
         });
+
+        if (getOAuth2TokenBtn) {
+            getOAuth2TokenBtn.addEventListener('click', async () => {
+                try {
+                    await fetchOAuth2Token();
+                    alert('OAuth 2.0 token retrieved successfully.');
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
 
         apiMethodInput.addEventListener('change', updateBodyState);
         apiBodyFormatInput.addEventListener('change', updateBodyState);
