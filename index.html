@@ -2105,7 +2105,7 @@
             try {
                 applyOAuthCodeFromUrl(window.location.href);
                 cleanOAuthCallbackUrl();
-                if (oauth2AuthorizationCode.value.trim()) {
+                if ((oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) || (localStorage.getItem('oauth2PendingCode') || '').trim()) {
                     fetchOAuth2Token(false).then(() => {
                         if (!window.opener) {
                             alert('OAuth 2.0 token retrieved successfully.');
