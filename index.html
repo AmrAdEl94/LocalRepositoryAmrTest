@@ -383,7 +383,7 @@
     </div>
 
     <div class="main-content">
-        <div class="version-indicator">Version 0.1.0004</div>
+        <div class="version-indicator">Version 0.1.0005</div>
         <div class="header">
             <button class="toggle-btn" id="toggleBtn">☰</button>
             <h1>WxCC Search API</h1>
@@ -1448,6 +1448,9 @@
             const clientId = (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '';
             const scope = (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '';
             const state = (oauth2State && oauth2State.value.trim()) || '';
+            if (!clientId) {
+                throw new Error('Enter a Client ID before opening the authorization page.');
+            }
             const authUrl = new URL(authUrlValue);
             authUrl.searchParams.set('response_type', 'code');
             if (clientId) authUrl.searchParams.set('client_id', clientId);
@@ -1600,6 +1603,9 @@
             const refreshToken = (oauth2RefreshToken && oauth2RefreshToken.value.trim()) || '';
             const username = (oauth2Username && oauth2Username.value.trim()) || '';
             const password = (oauth2Password && oauth2Password.value.trim()) || '';
+            if (!forceRefresh && grantType === 'authorization_code' && !clientId) {
+                throw new Error('Enter a Client ID before requesting an OAuth 2.0 token.');
+            }
             if (forceRefresh) {
                 if (!refreshToken) {
                     throw new Error('Enter a refresh token before refreshing the OAuth access token.');
