@@ -383,7 +383,7 @@
     </div>
 
     <div class="main-content">
-        <div class="version-indicator">Version 0.1.0002</div>
+        <div class="version-indicator">Version 0.1.0003</div>
         <div class="header">
             <button class="toggle-btn" id="toggleBtn">☰</button>
             <h1>WxCC Search API</h1>
@@ -876,6 +876,17 @@
         const oauth2CallbackUrlRow = document.getElementById('oauth2CallbackUrlRow');
         const oauth2AuthUrlRow = document.getElementById('oauth2AuthUrlRow');
 
+        const defaultOAuthTokenSettings = {
+            name: 'access_token_ElAraby',
+            authUrl: 'https://webexapis.com/v1/authorize',
+            accessTokenUrl: 'https://webexapis.com/v1/access_token',
+            clientId: '',
+            clientSecret: '',
+            scope: 'cjp:config_read cjp:config_write cjp:config cjp:user',
+            callbackUrl: 'https://amradel94.github.io/LocalRepositoryAmrTest/',
+            grantType: 'authorization_code'
+        };
+
         
         const apiList = [
             {
@@ -1233,6 +1244,31 @@
             } catch (error) {
                 // Ignore malformed stored state.
             }
+        }
+
+        function applyDefaultOAuthTokenSettings() {
+            const hasSavedOAuthState = !!localStorage.getItem('oauth2FormState');
+            if (tokenNameInput && !tokenNameInput.value.trim()) tokenNameInput.value = defaultOAuthTokenSettings.name;
+            if (tokenAuthUrlInput && !tokenAuthUrlInput.value.trim()) tokenAuthUrlInput.value = defaultOAuthTokenSettings.authUrl;
+            if (tokenAccessUrlInput && !tokenAccessUrlInput.value.trim()) tokenAccessUrlInput.value = defaultOAuthTokenSettings.accessTokenUrl;
+            if (tokenClientIdInput && !tokenClientIdInput.value.trim()) tokenClientIdInput.value = defaultOAuthTokenSettings.clientId;
+            if (tokenClientSecretInput && !tokenClientSecretInput.value.trim()) tokenClientSecretInput.value = defaultOAuthTokenSettings.clientSecret;
+            if (tokenScopeInput && !tokenScopeInput.value.trim()) tokenScopeInput.value = defaultOAuthTokenSettings.scope;
+            if (tokenCallbackInput && !tokenCallbackInput.value.trim()) tokenCallbackInput.value = defaultOAuthTokenSettings.callbackUrl;
+            if (tokenGrantTypeSelect && !hasSavedOAuthState) tokenGrantTypeSelect.value = defaultOAuthTokenSettings.grantType;
+
+            if (oauth2TokenName && !oauth2TokenName.value.trim()) oauth2TokenName.value = defaultOAuthTokenSettings.name;
+            if (oauth2AuthUrl && !oauth2AuthUrl.value.trim()) oauth2AuthUrl.value = defaultOAuthTokenSettings.authUrl;
+            if (oauth2AccessTokenUrl && !oauth2AccessTokenUrl.value.trim()) oauth2AccessTokenUrl.value = defaultOAuthTokenSettings.accessTokenUrl;
+            if (oauth2ClientId && !oauth2ClientId.value.trim()) oauth2ClientId.value = defaultOAuthTokenSettings.clientId;
+            if (oauth2ClientSecret && !oauth2ClientSecret.value.trim()) oauth2ClientSecret.value = defaultOAuthTokenSettings.clientSecret;
+            if (oauth2Scope && !oauth2Scope.value.trim()) oauth2Scope.value = defaultOAuthTokenSettings.scope;
+            if (oauth2CallbackUrl && !oauth2CallbackUrl.value.trim()) oauth2CallbackUrl.value = defaultOAuthTokenSettings.callbackUrl;
+            if (oauth2GrantType && !hasSavedOAuthState) oauth2GrantType.value = defaultOAuthTokenSettings.grantType;
+
+            ensureOAuthCallbackUrl();
+            ensureOAuthTokenUrls();
+            updateAuthTypeDisplay();
         }
 
         function ensureOAuthCallbackUrl() {
@@ -2104,8 +2140,9 @@
         sendRequestBtn.addEventListener('click', sendRequest);
 
         loadTokens();
-        renderTokenTable();
         restoreOAuthFormState();
+        applyDefaultOAuthTokenSettings();
+        renderTokenTable();
         renderApiTable();
 
         if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
