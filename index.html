@@ -383,7 +383,7 @@
     </div>
 
     <div class="main-content">
-        <div class="version-indicator">Version 0.1.0003</div>
+        <div class="version-indicator">Version 0.1.0004</div>
         <div class="header">
             <button class="toggle-btn" id="toggleBtn">☰</button>
             <h1>WxCC Search API</h1>
@@ -1271,6 +1271,12 @@
             updateAuthTypeDisplay();
         }
 
+        function isWebexAuthCodeFlowSelected() {
+            const authUrl = ((tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || '').toLowerCase();
+            const tokenUrl = ((tokenAccessUrlInput && tokenAccessUrlInput.value.trim()) || (oauth2AccessTokenUrl && oauth2AccessTokenUrl.value.trim()) || '').toLowerCase();
+            return authUrl.includes('webexapis.com/v1/authorize') && tokenUrl.includes('webexapis.com/v1/access_token');
+        }
+
         function ensureOAuthCallbackUrl() {
             const callbackValue = (tokenCallbackInput && tokenCallbackInput.value.trim()) || (oauth2CallbackUrl && oauth2CallbackUrl.value.trim()) || '';
             const resolvedCallbackUrl = callbackValue || getDefaultCallbackUrl();
@@ -1582,7 +1588,7 @@
             }
 
             const params = new URLSearchParams();
-            const grantType = forceRefresh ? 'refresh_token' : ((oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials');
+            const grantType = forceRefresh ? 'refresh_token' : (isWebexAuthCodeFlowSelected() ? 'authorization_code' : ((oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials'));
             const useBodyClientAuthentication = (oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked) || true;
             const callbackUrl = ensureOAuthCallbackUrl();
             const activeAuthorizationCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim();
@@ -2057,6 +2063,11 @@
         if (generateTokenBtn) {
             generateTokenBtn.addEventListener('click', async () => {
                 try {
+                    const shouldForceAuthorizationCode = isWebexAuthCodeFlowSelected();
+                    if (shouldForceAuthorizationCode) {
+                        if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = 'authorization_code';
+                        if (oauth2GrantType) oauth2GrantType.value = 'authorization_code';
+                    }
                     if (!tokenNameInput.value.trim()) {
                         throw new Error('Enter a token name before generating an OAuth token.');
                     }
