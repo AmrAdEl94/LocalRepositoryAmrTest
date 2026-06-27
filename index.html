@@ -1247,6 +1247,10 @@
             return resolvedCallbackUrl;
         }
 
+        function getStoredOAuthTokenUrl() {
+            return (localStorage.getItem('oauth2ResolvedTokenUrl') || '').trim();
+        }
+
         function inferOAuthTokenUrl() {
             const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
             if (!authUrlValue) {
@@ -1336,7 +1340,7 @@
             const fallbackTokenUrl = tokenAccessUrlInput && tokenAccessUrlInput.value.trim()
                 ? tokenAccessUrlInput.value.trim()
                 : (oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '');
-            const sourceUrl = fallbackTokenUrl || inferredTokenUrl;
+            const sourceUrl = fallbackTokenUrl || inferredTokenUrl || getStoredOAuthTokenUrl();
             if (tokenAccessUrlInput && !tokenAccessUrlInput.value.trim() && sourceUrl) {
                 tokenAccessUrlInput.value = sourceUrl;
             }
@@ -1345,6 +1349,9 @@
             }
             if (oauth2RefreshTokenUrl && !oauth2RefreshTokenUrl.value.trim() && oauth2AccessTokenUrl.value.trim()) {
                 oauth2RefreshTokenUrl.value = oauth2AccessTokenUrl.value.trim();
+            }
+            if (sourceUrl) {
+                localStorage.setItem('oauth2ResolvedTokenUrl', sourceUrl);
             }
             return sourceUrl;
         }
