@@ -1636,9 +1636,14 @@
         function syncOAuthTokenToWindow(targetWindow, token, refreshToken) {
             if (!targetWindow || !targetWindow.document) return;
             try {
+                if (typeof targetWindow.syncTokenDisplay === 'function') {
+                    targetWindow.syncTokenDisplay(token || '');
+                }
+                const targetTokenValueInput = targetWindow.document.getElementById('tokenValueInput');
                 const targetAccessToken = targetWindow.document.getElementById('oauth2AccessToken');
                 const targetRefreshToken = targetWindow.document.getElementById('oauth2RefreshToken');
                 const targetAuthorizationCode = targetWindow.document.getElementById('oauth2AuthorizationCode');
+                if (targetTokenValueInput) targetTokenValueInput.value = token || '';
                 if (targetAccessToken) targetAccessToken.value = token || '';
                 if (targetRefreshToken) targetRefreshToken.value = refreshToken || '';
                 if (targetAuthorizationCode && oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) {
@@ -1668,6 +1673,10 @@
                         window.opener.localStorage.setItem('oauth2PendingCode', pendingCode);
                     }
                     syncOAuthTokenToWindow(window.opener, token, refreshToken);
+                    const message = (tokenNameInput && tokenNameInput.value.trim())
+                        ? `OAuth token generated successfully for ${tokenNameInput.value.trim()}.`
+                        : 'OAuth token generated successfully.';
+                    window.opener.alert(message);
                 } catch (error) {
                     // Ignore cross-window storage access errors.
                 }
