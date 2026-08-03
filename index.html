@@ -1567,6 +1567,15 @@
             }
         }
 
+        function clearPendingOAuthCode() {
+            pendingOAuthAuthorizationCode = '';
+            if (oauth2AuthorizationCode) {
+                oauth2AuthorizationCode.value = '';
+            }
+            localStorage.removeItem('oauth2PendingCode');
+            localStorage.removeItem('oauth2AuthFinished');
+        }
+
         function applyOAuthCodeFromUrl(urlString) {
             const { code, error, errorDescription } = extractOAuthCodeFromUrl(urlString);
             if (error) {
@@ -1718,22 +1727,28 @@
             if (grantType !== 'authorization_code') {
                 return fetchOAuth2Token(false);
             }
+            clearPendingOAuthCode();
             const authUrl = buildOAuthAuthorizationUrl();
             const popup = window.open(authUrl, 'oauth2Popup', 'width=900,height=700');
             if (!popup) {
                 throw new Error('Popup blocked. Please allow popups and try again.');
             }
-            const code = await waitForOAuthCode(popup);
-            if (code) {
-                pendingOAuthAuthorizationCode = code;
-                if (oauth2AuthorizationCode) {
-                    oauth2AuthorizationCode.value = code;
+            try {
+                const code = await waitForOAuthCode(popup);
+                if (code) {
+                    pendingOAuthAuthorizationCode = code;
+                    if (oauth2AuthorizationCode) {
+                        oauth2AuthorizationCode.value = code;
+                    }
+                    localStorage.setItem('oauth2PendingCode', code);
+                    await fetchOAuth2Token(false);
+                    return code;
                 }
-                localStorage.setItem('oauth2PendingCode', code);
-                await fetchOAuth2Token(false);
-                return code;
+                throw new Error('No authorization code was returned.');
+            } catch (error) {
+                clearPendingOAuthCode();
+                throw error;
             }
-            throw new Error('No authorization code was returned.');
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
@@ -1791,7 +1806,7 @@
                 if (password) params.append('password', password);
             }
 
-            if (!forceRefresh && activeAccessToken) {
+            if (!forceRefresh && grantType !== 'authorization_code' && activeAccessToken) {
                 syncTokenDisplay(activeAccessToken);
                 return activeAccessToken;
             }
@@ -1810,26 +1825,33 @@
                 headers['Authorization'] = 'Basic ' + btoa(`${clientId}:${clientSecret}`);
             }
 
-            const response = await fetch(tokenUrl, requestOptions);
-            const responseText = await response.text();
-            let data = {};
             try {
-                data = JSON.parse(responseText);
+                const response = await fetch(tokenUrl, requestOptions);
+                const responseText = await response.text();
+                let data = {};
+                try {
+                    data = JSON.parse(responseText);
+                } catch (error) {
+                    data = {};
+                }
+                if (!response.ok) {
+                    clearPendingOAuthCode();
+                    throw new Error(data.error_description || data.error || data.message || responseText || `OAuth 2.0 token request failed (${response.status}).`);
+                }
+                if (!data.access_token) {
+                    clearPendingOAuthCode();
+                    throw new Error('No access token was returned by the OAuth 2.0 server.');
+                }
+                syncTokenDisplay(data.access_token);
+                if (data.refresh_token && oauth2RefreshToken) {
+                    oauth2RefreshToken.value = data.refresh_token;
+                }
+                persistOAuthTokenState(data.access_token, data.refresh_token || '');
+                return data.access_token;
             } catch (error) {
-                data = {};
+                clearPendingOAuthCode();
+                throw error;
             }
-            if (!response.ok) {
-                throw new Error(data.error_description || data.error || data.message || responseText || `OAuth 2.0 token request failed (${response.status}).`);
-            }
-            if (!data.access_token) {
-                throw new Error('No access token was returned by the OAuth 2.0 server.');
-            }
-            syncTokenDisplay(data.access_token);
-            if (data.refresh_token && oauth2RefreshToken) {
-                oauth2RefreshToken.value = data.refresh_token;
-            }
-            persistOAuthTokenState(data.access_token, data.refresh_token || '');
-            return data.access_token;
         }
 
         function persistTokenValueDisplay(value) {
