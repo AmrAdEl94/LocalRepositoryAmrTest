@@ -1741,7 +1741,6 @@
                         oauth2AuthorizationCode.value = code;
                     }
                     localStorage.setItem('oauth2PendingCode', code);
-                    await fetchOAuth2Token(false);
                     return code;
                 }
                 throw new Error('No authorization code was returned.');
