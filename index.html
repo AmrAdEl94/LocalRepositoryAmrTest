@@ -536,12 +536,6 @@
                                     <label for="apiUrl">URL</label>
                                     <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
                                 </div>
-                                <div class="field-row url-row" id="apiTokenReferenceRow" style="display: none;">
-                                    <label for="apiTokenReference">Saved Token (Tokens tab)</label>
-                                    <select id="apiTokenReference">
-                                        <option value="">Select a saved token</option>
-                                    </select>
-                                </div>
                                 <div class="headers-section">
                                     <div class="headers-section-title">
                                         <span>Query Parameters</span>
@@ -576,6 +570,12 @@
                                         <div class="auth-group">
                                             <label><input type="radio" name="authType" value="oauth2"> Saved OAuth Token</label>
                                         </div>
+                                    </div>
+                                    <div id="apiTokenReferenceRow" style="display: none; margin-top: 12px;">
+                                        <label for="apiTokenReference">Saved Token (Tokens tab)</label>
+                                        <select id="apiTokenReference">
+                                            <option value="">Select a saved token</option>
+                                        </select>
                                     </div>
                                     <div id="basicAuthSection" style="display: none;">
                                         <div class="basic-auth-inputs">
@@ -703,8 +703,8 @@
                             <div class="field-row">
                                 <label for="tokenGrantTypeSelect">Grant Type</label>
                                 <select id="tokenGrantTypeSelect">
+                                    <option value="authorization_code" selected>Authorization Code</option>
                                     <option value="client_credentials">Client Credentials</option>
-                                    <option value="authorization_code">Authorization Code</option>
                                 </select>
                             </div>
                             <div class="field-row" style="grid-column: 1 / -1;">
@@ -887,8 +887,16 @@
             grantType: 'authorization_code'
         };
 
-        
         const apiList = [
+            {
+                name: 'Webex User API',
+                method: 'GET',
+                url: 'https://api.wxcc-eu2.cisco.com/organization/f98db768-273d-4357-8b80-438a86440bce/v2/user',
+                params: '',
+                headers: '',
+                bodyFormat: 'None',
+                body: ''
+            },
             {
                 name: 'Magento Order status API',
                 method: 'GET',
@@ -937,7 +945,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${escapeHtml(token.name || 'Untitled Token')}</td>
-                    <td>${escapeHtml(token.grantType || 'client_credentials')}</td>
+                    <td>${escapeHtml(token.grantType || 'authorization_code')}</td>
                     <td>${escapeHtml(token.value || '')}</td>
                     <td>
                         <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
@@ -956,7 +964,7 @@
                     tokenClientSecretInput.value = tokenList[index].clientSecret || '';
                     tokenScopeInput.value = tokenList[index].scope || '';
                     tokenCallbackInput.value = tokenList[index].callbackUrl || '';
-                    tokenGrantTypeSelect.value = tokenList[index].grantType || 'client_credentials';
+                    tokenGrantTypeSelect.value = tokenList[index].grantType || 'authorization_code';
                     tokenValueInput.value = tokenList[index].value || '';
                 });
             });
@@ -987,7 +995,7 @@
             if (tokenClientSecretInput) tokenClientSecretInput.value = '';
             if (tokenScopeInput) tokenScopeInput.value = '';
             if (tokenCallbackInput) tokenCallbackInput.value = '';
-            if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = 'client_credentials';
+            if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = 'authorization_code';
             if (tokenValueInput) tokenValueInput.value = '';
         }
 
@@ -1074,7 +1082,7 @@
             if (oauth2ClientId) oauth2ClientId.value = api.oauth2ClientId || '';
             if (oauth2ClientSecret) oauth2ClientSecret.value = api.oauth2ClientSecret || '';
             if (oauth2Scope) oauth2Scope.value = api.oauth2Scope || '';
-            if (oauth2GrantType) oauth2GrantType.value = api.oauth2GrantType || 'client_credentials';
+            if (oauth2GrantType) oauth2GrantType.value = api.oauth2GrantType || 'authorization_code';
             if (oauth2State) oauth2State.value = api.oauth2State || 'new';
             if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = api.oauth2SendClientCredentialsInBody !== undefined ? api.oauth2SendClientCredentialsInBody : true;
             if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = api.oauth2RefreshTokenUrl || '';
@@ -1203,7 +1211,7 @@
                 clientSecret: (oauth2ClientSecret && oauth2ClientSecret.value.trim()) || (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '',
                 scope: (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '',
                 callbackUrl: (oauth2CallbackUrl && oauth2CallbackUrl.value.trim()) || (tokenCallbackInput && tokenCallbackInput.value.trim()) || '',
-                grantType: (oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials',
+                grantType: (oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'authorization_code',
                 state: (oauth2State && oauth2State.value.trim()) || '',
                 sendClientCredentialsInBody: !!(oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked),
                 accessToken: (oauth2AccessToken && oauth2AccessToken.value.trim()) || (tokenValueInput ? tokenValueInput.value.trim() : ''),
@@ -1266,7 +1274,7 @@
                 oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
                 oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
                 oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
-                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'authorization_code',
                 oauth2State: oauth2State ? oauth2State.value.trim() : '',
                 oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
                 oauth2AuthorizationCode: oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '',
@@ -1301,7 +1309,7 @@
                 if (oauth2ClientId) oauth2ClientId.value = state.oauth2ClientId || '';
                 if (oauth2ClientSecret) oauth2ClientSecret.value = state.oauth2ClientSecret || '';
                 if (oauth2Scope) oauth2Scope.value = state.oauth2Scope || '';
-                if (oauth2GrantType) oauth2GrantType.value = state.oauth2GrantType || 'client_credentials';
+                if (oauth2GrantType) oauth2GrantType.value = state.oauth2GrantType || 'authorization_code';
                 if (oauth2State) oauth2State.value = state.oauth2State || '';
                 if (oauth2CallbackUrl) oauth2CallbackUrl.value = state.oauth2CallbackUrl || '';
                 if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = state.oauth2AuthorizationCode || '';
@@ -1317,7 +1325,7 @@
                 if (tokenClientSecretInput) tokenClientSecretInput.value = state.tokenClientSecretInput || '';
                 if (tokenScopeInput) tokenScopeInput.value = state.tokenScopeInput || '';
                 if (tokenCallbackInput) tokenCallbackInput.value = state.tokenCallbackInput || '';
-                if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = state.tokenGrantTypeSelect || 'client_credentials';
+                if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = state.tokenGrantTypeSelect || 'authorization_code';
                 if (tokenValueInput) tokenValueInput.value = state.tokenValueInput || '';
                 if (state.currentAuthType) currentAuthType = state.currentAuthType;
                 if (oauth2AccessToken && state.oauth2AccessToken) {
@@ -1688,7 +1696,7 @@
             syncOAuthFieldsFromTokenManager();
             syncTokenManagerFromOAuthFields();
             saveOAuthFormState();
-            const grantType = (oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials';
+            const grantType = (oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'authorization_code';
             if (grantType !== 'authorization_code') {
                 return fetchOAuth2Token(false);
             }
@@ -1723,7 +1731,7 @@
             }
 
             const params = new URLSearchParams();
-            const grantType = forceRefresh ? 'refresh_token' : (isWebexAuthCodeFlowSelected() ? 'authorization_code' : ((oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials'));
+            const grantType = forceRefresh ? 'refresh_token' : (isWebexAuthCodeFlowSelected() ? 'authorization_code' : ((oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'authorization_code'));
             const useBodyClientAuthentication = (oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked) || true;
             const callbackUrl = ensureOAuthCallbackUrl();
             const activeAuthorizationCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim();
@@ -1925,7 +1933,7 @@
                 oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
                 oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
                 oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
-                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'authorization_code',
                 oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
                 oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
                 oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
@@ -1994,7 +2002,7 @@
                 oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
                 oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
                 oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
-                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'client_credentials',
+                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'authorization_code',
                 oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
                 oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
                 oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
@@ -2016,13 +2024,31 @@
             const paramsMap = JSON.parse(api.params || '{}');
             const headersMap = JSON.parse(api.headers || '{}');
             
-            const selectedToken = tokenList.find(token => token.name === (api.tokenRef || ''));
+            const selectedTokenReference = (apiTokenReference ? apiTokenReference.value.trim() : '') || api.tokenRef || '';
+            const selectedToken = tokenList.find(token => token.name === selectedTokenReference);
             if (currentAuthType === 'oauth2') {
-                if (!selectedToken || !selectedToken.value) {
-                    alert('Select a saved OAuth token from the Tokens tab before sending this request.');
-                    return;
+                if (selectedTokenReference) {
+                    if (!selectedToken || !selectedToken.value) {
+                        alert('The selected saved OAuth token does not have a value to send.');
+                        return;
+                    }
+                    headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
+                } else {
+                    const directToken = oauth2AccessToken ? oauth2AccessToken.value.trim() : '';
+                    if (directToken) {
+                        headersMap['Authorization'] = `Bearer ${directToken}`;
+                    } else {
+                        try {
+                            const token = await fetchOAuth2Token();
+                            if (token) {
+                                headersMap['Authorization'] = `Bearer ${token}`;
+                            }
+                        } catch (error) {
+                            alert(error.message);
+                            return;
+                        }
+                    }
                 }
-                headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
             } else if (selectedToken) {
                 if (selectedToken.type === 'Basic') {
                     headersMap['Authorization'] = `Basic ${selectedToken.value}`;
@@ -2042,16 +2068,6 @@
                     if (token) {
                         headersMap['Authorization'] = `Bearer ${token}`;
                     }
-                }
-            } else if (currentAuthType === 'oauth2') {
-                try {
-                    const token = oauth2AccessToken.value.trim() || await fetchOAuth2Token();
-                    if (token) {
-                        headersMap['Authorization'] = `Bearer ${token}`;
-                    }
-                } catch (error) {
-                    alert(error.message);
-                    return;
                 }
             }
 
@@ -2157,7 +2173,7 @@
             if (oauth2ClientId) oauth2ClientId.value = '';
             if (oauth2ClientSecret) oauth2ClientSecret.value = '';
             if (oauth2Scope) oauth2Scope.value = '';
-            if (oauth2GrantType) oauth2GrantType.value = 'client_credentials';
+            if (oauth2GrantType) oauth2GrantType.value = 'authorization_code';
             if (oauth2State) oauth2State.value = 'new';
             if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = true;
             if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = '';
@@ -2240,7 +2256,7 @@
                         throw new Error('Enter an Access Token URL before generating an OAuth token.');
                     }
                     const params = new URLSearchParams();
-                    params.append('grant_type', tokenGrantTypeSelect.value || 'client_credentials');
+                    params.append('grant_type', tokenGrantTypeSelect.value || 'authorization_code');
                     if (tokenClientIdInput.value.trim()) params.append('client_id', tokenClientIdInput.value.trim());
                     if (tokenClientSecretInput.value.trim()) params.append('client_secret', tokenClientSecretInput.value.trim());
                     if (tokenScopeInput.value.trim()) params.append('scope', tokenScopeInput.value.trim());
