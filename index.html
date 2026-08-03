@@ -937,8 +937,11 @@
         function syncTokenDisplay(value) {
             const resolvedValue = (value || '').toString().trim();
             if (tokenValueInput) tokenValueInput.value = resolvedValue;
-            if (oauth2AccessToken && oauth2AccessToken.value !== resolvedValue) {
+            if (oauth2AccessToken) {
                 oauth2AccessToken.value = resolvedValue;
+            }
+            if (tokenValueInput && tokenValueInput.value !== resolvedValue) {
+                tokenValueInput.value = resolvedValue;
             }
         }
 
@@ -1846,6 +1849,11 @@
                     oauth2RefreshToken.value = data.refresh_token;
                 }
                 persistOAuthTokenState(data.access_token, data.refresh_token || '');
+                if (tokenNameInput && tokenNameInput.value.trim()) {
+                    alert(`OAuth token generated successfully for ${tokenNameInput.value.trim()}.`);
+                } else {
+                    alert('OAuth token generated successfully.');
+                }
                 return data.access_token;
             } catch (error) {
                 clearPendingOAuthCode();
@@ -2368,7 +2376,7 @@
                 if ((oauth2AuthorizationCode && oauth2AuthorizationCode.value.trim()) || (localStorage.getItem('oauth2PendingCode') || '').trim()) {
                     fetchOAuth2Token(false).then(() => {
                         if (!window.opener) {
-                            alert('OAuth 2.0 token retrieved successfully.');
+                            alert('OAuth 2.0 token generated successfully.');
                         }
                         if (window.opener && !window.opener.closed) {
                             window.close();
