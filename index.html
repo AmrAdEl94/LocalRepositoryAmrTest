@@ -620,7 +620,7 @@
                                 <button id="sendRequestBtn" class="btn btn-primary">Send Request</button>
                                 <label style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
                                     <input type="checkbox" id="useCorsProxy" style="width: 16px; height: 16px; cursor: pointer;">
-                                    <span style="cursor: pointer;">Use CORS Proxy (for testing)</span>
+                                    <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:underline;">CORS Proxy (for testing)</a>
                                 </label>
                             </div>
                             <div id="requestPreview" class="request-preview-section hidden">
@@ -690,7 +690,10 @@
                             </div>
                             <div class="field-row">
                                 <label for="tokenClientSecretInput">Client Secret</label>
-                                <input id="tokenClientSecretInput" type="password" placeholder="Client Secret">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <input id="tokenClientSecretInput" type="password" placeholder="Client Secret" style="flex:1;">
+                                    <button type="button" id="toggleTokenClientSecretBtn" class="btn btn-secondary" style="width:auto; padding:8px 10px;" aria-label="Show client secret">👁</button>
+                                </div>
                             </div>
                             <div class="field-row">
                                 <label for="tokenScopeInput">Scope</label>
@@ -840,6 +843,7 @@
         const tokenScopeInput = document.getElementById('tokenScopeInput');
         const tokenCallbackInput = document.getElementById('tokenCallbackInput');
         const tokenGrantTypeSelect = document.getElementById('tokenGrantTypeSelect');
+        const toggleTokenClientSecretBtn = document.getElementById('toggleTokenClientSecretBtn');
         const saveTokenBtn = document.getElementById('saveTokenBtn');
         const newTokenBtn = document.getElementById('newTokenBtn');
         const generateTokenBtn = document.getElementById('generateTokenBtn');
@@ -925,6 +929,19 @@
         let currentTokenIndex = null;
         let pendingOAuthAuthorizationCode = '';
 
+        function getStoredTokenValue(token) {
+            if (!token) return '';
+            return (token.value ?? token.accessToken ?? token.tokenValue ?? token.access_token ?? '').toString().trim();
+        }
+
+        function syncTokenDisplay(value) {
+            const resolvedValue = (value || '').toString().trim();
+            if (tokenValueInput) tokenValueInput.value = resolvedValue;
+            if (oauth2AccessToken && oauth2AccessToken.value !== resolvedValue) {
+                oauth2AccessToken.value = resolvedValue;
+            }
+        }
+
         function loadTokens() {
             try {
                 const stored = localStorage.getItem('collectionTokens');
@@ -946,7 +963,7 @@
                 row.innerHTML = `
                     <td>${escapeHtml(token.name || 'Untitled Token')}</td>
                     <td>${escapeHtml(token.grantType || 'authorization_code')}</td>
-                    <td>${escapeHtml(token.value || '')}</td>
+                    <td>${escapeHtml(getStoredTokenValue(token))}</td>
                     <td>
                         <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
                     </td>
@@ -965,7 +982,7 @@
                     tokenScopeInput.value = tokenList[index].scope || '';
                     tokenCallbackInput.value = tokenList[index].callbackUrl || '';
                     tokenGrantTypeSelect.value = tokenList[index].grantType || 'authorization_code';
-                    tokenValueInput.value = tokenList[index].value || '';
+                    syncTokenDisplay(getStoredTokenValue(tokenList[index]));
                 });
             });
             populateTokenReferenceSelect();
@@ -996,7 +1013,7 @@
             if (tokenScopeInput) tokenScopeInput.value = '';
             if (tokenCallbackInput) tokenCallbackInput.value = '';
             if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = 'authorization_code';
-            if (tokenValueInput) tokenValueInput.value = '';
+            syncTokenDisplay('');
         }
 
         function saveToken() {
@@ -1015,7 +1032,8 @@
                 scope: tokenScopeInput.value.trim(),
                 callbackUrl: tokenCallbackInput.value.trim(),
                 grantType: tokenGrantTypeSelect.value,
-                value
+                value,
+                accessToken: value
             };
             if (currentTokenIndex === null) {
                 tokenList.push(tokenData);
@@ -1025,6 +1043,7 @@
             saveTokens();
             renderTokenTable();
             resetTokenForm();
+            syncTokenDisplay(value);
         }
 
         function renderApiTable() {
@@ -1619,8 +1638,7 @@
         }
 
         function persistOAuthTokenState(token, refreshToken) {
-            if (oauth2AccessToken) oauth2AccessToken.value = token || '';
-            if (tokenValueInput) tokenValueInput.value = token || '';
+            syncTokenDisplay(token || '');
             if (oauth2RefreshToken && refreshToken) oauth2RefreshToken.value = refreshToken;
             localStorage.setItem('oauth2LatestToken', token || '');
             localStorage.setItem('oauth2LatestRefreshToken', refreshToken || '');
@@ -1774,6 +1792,7 @@
             }
 
             if (!forceRefresh && activeAccessToken) {
+                syncTokenDisplay(activeAccessToken);
                 return activeAccessToken;
             }
 
@@ -1805,17 +1824,16 @@
             if (!data.access_token) {
                 throw new Error('No access token was returned by the OAuth 2.0 server.');
             }
-            if (oauth2AccessToken) {
-                oauth2AccessToken.value = data.access_token;
-            }
-            if (tokenValueInput) {
-                tokenValueInput.value = data.access_token;
-            }
+            syncTokenDisplay(data.access_token);
             if (data.refresh_token && oauth2RefreshToken) {
                 oauth2RefreshToken.value = data.refresh_token;
             }
             persistOAuthTokenState(data.access_token, data.refresh_token || '');
             return data.access_token;
+        }
+
+        function persistTokenValueDisplay(value) {
+            syncTokenDisplay(value);
         }
 
         function escapeHtml(text) {
@@ -2025,14 +2043,15 @@
             const headersMap = JSON.parse(api.headers || '{}');
             
             const selectedTokenReference = (apiTokenReference ? apiTokenReference.value.trim() : '') || api.tokenRef || '';
-            const selectedToken = tokenList.find(token => token.name === selectedTokenReference);
+            const selectedToken = tokenList.find(token => (token.name || '').trim() === selectedTokenReference.trim());
             if (currentAuthType === 'oauth2') {
                 if (selectedTokenReference) {
-                    if (!selectedToken || !selectedToken.value) {
+                    const tokenValue = getStoredTokenValue(selectedToken);
+                    if (!selectedToken || !tokenValue) {
                         alert('The selected saved OAuth token does not have a value to send.');
                         return;
                     }
-                    headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
+                    headersMap['Authorization'] = `Bearer ${tokenValue}`;
                 } else {
                     const directToken = oauth2AccessToken ? oauth2AccessToken.value.trim() : '';
                     if (directToken) {
@@ -2212,6 +2231,15 @@
             oauth2GrantType.addEventListener('change', updateAuthTypeDisplay);
         }
 
+        if (toggleTokenClientSecretBtn && tokenClientSecretInput) {
+            toggleTokenClientSecretBtn.addEventListener('click', () => {
+                const isPassword = tokenClientSecretInput.type === 'password';
+                tokenClientSecretInput.type = isPassword ? 'text' : 'password';
+                toggleTokenClientSecretBtn.textContent = isPassword ? '🙈' : '👁';
+                toggleTokenClientSecretBtn.setAttribute('aria-label', isPassword ? 'Hide client secret' : 'Show client secret');
+            });
+        }
+
         if (saveTokenBtn) saveTokenBtn.addEventListener('click', saveToken);
         if (newTokenBtn) newTokenBtn.addEventListener('click', resetTokenForm);
         if (generateTokenBtn) {
@@ -2241,7 +2269,8 @@
                             scope: tokenScopeInput.value.trim(),
                             callbackUrl: tokenCallbackInput.value.trim(),
                             grantType: tokenGrantTypeSelect.value,
-                            value: tokenValueInput.value.trim() || oauth2AccessToken.value.trim()
+                            value: tokenValueInput.value.trim() || (oauth2AccessToken ? oauth2AccessToken.value.trim() : ''),
+                            accessToken: tokenValueInput.value.trim() || (oauth2AccessToken ? oauth2AccessToken.value.trim() : '')
                         };
                         if (currentTokenIndex === null) {
                             tokenList.push(tokenData);
@@ -2275,7 +2304,7 @@
                     if (!data.access_token) {
                         throw new Error('No access token was returned by the OAuth 2.0 server.');
                     }
-                    tokenValueInput.value = data.access_token;
+                    syncTokenDisplay(data.access_token);
                     const tokenData = {
                         name: tokenNameInput.value.trim(),
                         authUrl: tokenAuthUrlInput.value.trim(),
@@ -2285,7 +2314,8 @@
                         scope: tokenScopeInput.value.trim(),
                         callbackUrl: tokenCallbackInput.value.trim(),
                         grantType: tokenGrantTypeSelect.value,
-                        value: data.access_token
+                        value: data.access_token,
+                        accessToken: data.access_token
                     };
                     if (currentTokenIndex === null) {
                         tokenList.push(tokenData);
