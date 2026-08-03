@@ -1194,6 +1194,70 @@
             return url.toString();
         }
 
+        function getOAuthContextSnapshot() {
+            return {
+                authUrl: (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '',
+                accessTokenUrl: (oauth2AccessTokenUrl && oauth2AccessTokenUrl.value.trim()) || (tokenAccessUrlInput && tokenAccessUrlInput.value.trim()) || '',
+                refreshTokenUrl: (oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) || '',
+                clientId: (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '',
+                clientSecret: (oauth2ClientSecret && oauth2ClientSecret.value.trim()) || (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '',
+                scope: (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '',
+                callbackUrl: (oauth2CallbackUrl && oauth2CallbackUrl.value.trim()) || (tokenCallbackInput && tokenCallbackInput.value.trim()) || '',
+                grantType: (oauth2GrantType && oauth2GrantType.value) || (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || 'client_credentials',
+                state: (oauth2State && oauth2State.value.trim()) || '',
+                sendClientCredentialsInBody: !!(oauth2SendClientCredentialsInBody && oauth2SendClientCredentialsInBody.checked),
+                accessToken: (oauth2AccessToken && oauth2AccessToken.value.trim()) || (tokenValueInput ? tokenValueInput.value.trim() : ''),
+                authorizationCode: pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim(),
+                tokenName: (oauth2TokenName && oauth2TokenName.value.trim()) || (tokenNameInput && tokenNameInput.value.trim()) || '',
+                tokenAuthUrl: (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '',
+                tokenAccessUrl: (tokenAccessUrlInput && tokenAccessUrlInput.value.trim()) || '',
+                tokenClientId: (tokenClientIdInput && tokenClientIdInput.value.trim()) || '',
+                tokenClientSecret: (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '',
+                tokenScope: (tokenScopeInput && tokenScopeInput.value.trim()) || '',
+                tokenCallbackUrl: (tokenCallbackInput && tokenCallbackInput.value.trim()) || '',
+                tokenGrantType: (tokenGrantTypeSelect && tokenGrantTypeSelect.value) || '',
+                tokenValue: (tokenValueInput && tokenValueInput.value.trim()) || ''
+            };
+        }
+
+        function saveOAuthContextSnapshot() {
+            localStorage.setItem('oauth2PopupContext', JSON.stringify(getOAuthContextSnapshot()));
+        }
+
+        function restoreOAuthContextSnapshot() {
+            try {
+                const raw = localStorage.getItem('oauth2PopupContext');
+                if (!raw) return;
+                const snapshot = JSON.parse(raw);
+                if (tokenAuthUrlInput && !tokenAuthUrlInput.value.trim() && snapshot.tokenAuthUrl) tokenAuthUrlInput.value = snapshot.tokenAuthUrl;
+                if (oauth2AuthUrl && !oauth2AuthUrl.value.trim() && snapshot.authUrl) oauth2AuthUrl.value = snapshot.authUrl;
+                if (tokenAccessUrlInput && !tokenAccessUrlInput.value.trim() && snapshot.tokenAccessUrl) tokenAccessUrlInput.value = snapshot.tokenAccessUrl;
+                if (oauth2AccessTokenUrl && !oauth2AccessTokenUrl.value.trim() && snapshot.accessTokenUrl) oauth2AccessTokenUrl.value = snapshot.accessTokenUrl;
+                if (tokenClientIdInput && !tokenClientIdInput.value.trim() && snapshot.tokenClientId) tokenClientIdInput.value = snapshot.tokenClientId;
+                if (oauth2ClientId && !oauth2ClientId.value.trim() && snapshot.clientId) oauth2ClientId.value = snapshot.clientId;
+                if (tokenClientSecretInput && !tokenClientSecretInput.value.trim() && snapshot.tokenClientSecret) tokenClientSecretInput.value = snapshot.tokenClientSecret;
+                if (oauth2ClientSecret && !oauth2ClientSecret.value.trim() && snapshot.clientSecret) oauth2ClientSecret.value = snapshot.clientSecret;
+                if (tokenScopeInput && !tokenScopeInput.value.trim() && snapshot.tokenScope) tokenScopeInput.value = snapshot.tokenScope;
+                if (oauth2Scope && !oauth2Scope.value.trim() && snapshot.scope) oauth2Scope.value = snapshot.scope;
+                if (tokenCallbackInput && !tokenCallbackInput.value.trim() && snapshot.tokenCallbackUrl) tokenCallbackInput.value = snapshot.tokenCallbackUrl;
+                if (oauth2CallbackUrl && !oauth2CallbackUrl.value.trim() && snapshot.callbackUrl) oauth2CallbackUrl.value = snapshot.callbackUrl;
+                if (tokenGrantTypeSelect && !tokenGrantTypeSelect.value && snapshot.tokenGrantType) tokenGrantTypeSelect.value = snapshot.tokenGrantType;
+                if (oauth2GrantType && !oauth2GrantType.value && snapshot.grantType) oauth2GrantType.value = snapshot.grantType;
+                if (oauth2SendClientCredentialsInBody && snapshot.sendClientCredentialsInBody !== undefined) {
+                    oauth2SendClientCredentialsInBody.checked = snapshot.sendClientCredentialsInBody;
+                }
+                if (tokenValueInput && !tokenValueInput.value.trim() && snapshot.tokenValue) tokenValueInput.value = snapshot.tokenValue;
+                if (oauth2AccessToken && !oauth2AccessToken.value.trim() && snapshot.accessToken) oauth2AccessToken.value = snapshot.accessToken;
+                if (oauth2RefreshTokenUrl && !oauth2RefreshTokenUrl.value.trim() && snapshot.refreshTokenUrl) oauth2RefreshTokenUrl.value = snapshot.refreshTokenUrl;
+                if (oauth2State && !oauth2State.value.trim() && snapshot.state) oauth2State.value = snapshot.state;
+                if (oauth2AuthorizationCode && !oauth2AuthorizationCode.value.trim() && snapshot.authorizationCode) oauth2AuthorizationCode.value = snapshot.authorizationCode;
+                if (tokenNameInput && !tokenNameInput.value.trim() && snapshot.tokenName) tokenNameInput.value = snapshot.tokenName;
+                if (oauth2TokenName && !oauth2TokenName.value.trim() && snapshot.tokenName) oauth2TokenName.value = snapshot.tokenName;
+            } catch (error) {
+                // Ignore malformed stored OAuth context.
+            }
+        }
+
         function saveOAuthFormState() {
             const state = {
                 oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
@@ -1211,9 +1275,19 @@
                 oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
                 oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
                 oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
-                currentAuthType: currentAuthType
+                currentAuthType: currentAuthType,
+                tokenNameInput: tokenNameInput ? tokenNameInput.value.trim() : '',
+                tokenAuthUrlInput: tokenAuthUrlInput ? tokenAuthUrlInput.value.trim() : '',
+                tokenAccessUrlInput: tokenAccessUrlInput ? tokenAccessUrlInput.value.trim() : '',
+                tokenClientIdInput: tokenClientIdInput ? tokenClientIdInput.value.trim() : '',
+                tokenClientSecretInput: tokenClientSecretInput ? tokenClientSecretInput.value.trim() : '',
+                tokenScopeInput: tokenScopeInput ? tokenScopeInput.value.trim() : '',
+                tokenCallbackInput: tokenCallbackInput ? tokenCallbackInput.value.trim() : '',
+                tokenGrantTypeSelect: tokenGrantTypeSelect ? tokenGrantTypeSelect.value : '',
+                tokenValueInput: tokenValueInput ? tokenValueInput.value.trim() : ''
             };
             localStorage.setItem('oauth2FormState', JSON.stringify(state));
+            saveOAuthContextSnapshot();
         }
 
         function restoreOAuthFormState() {
@@ -1236,11 +1310,21 @@
                 if (oauth2Password) oauth2Password.value = state.oauth2Password || '';
                 if (oauth2AccessToken) oauth2AccessToken.value = state.oauth2AccessToken || '';
                 if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = state.oauth2SendClientCredentialsInBody !== undefined ? state.oauth2SendClientCredentialsInBody : true;
+                if (tokenNameInput) tokenNameInput.value = state.tokenNameInput || '';
+                if (tokenAuthUrlInput) tokenAuthUrlInput.value = state.tokenAuthUrlInput || '';
+                if (tokenAccessUrlInput) tokenAccessUrlInput.value = state.tokenAccessUrlInput || '';
+                if (tokenClientIdInput) tokenClientIdInput.value = state.tokenClientIdInput || '';
+                if (tokenClientSecretInput) tokenClientSecretInput.value = state.tokenClientSecretInput || '';
+                if (tokenScopeInput) tokenScopeInput.value = state.tokenScopeInput || '';
+                if (tokenCallbackInput) tokenCallbackInput.value = state.tokenCallbackInput || '';
+                if (tokenGrantTypeSelect) tokenGrantTypeSelect.value = state.tokenGrantTypeSelect || 'client_credentials';
+                if (tokenValueInput) tokenValueInput.value = state.tokenValueInput || '';
                 if (state.currentAuthType) currentAuthType = state.currentAuthType;
                 if (oauth2AccessToken && state.oauth2AccessToken) {
                     oauth2AccessToken.value = state.oauth2AccessToken;
                 }
                 updateAuthTypeDisplay();
+                restoreOAuthContextSnapshot();
             } catch (error) {
                 // Ignore malformed stored state.
             }
@@ -1336,6 +1420,18 @@
                 }
             } catch (error) {
                 // Ignore malformed auth URLs.
+            }
+
+            try {
+                const rawState = localStorage.getItem('oauth2PopupContext');
+                if (rawState) {
+                    const state = JSON.parse(rawState);
+                    if (state.clientId) {
+                        return state.clientId;
+                    }
+                }
+            } catch (error) {
+                // Ignore malformed stored state.
             }
 
             try {
@@ -1473,7 +1569,9 @@
 
         function buildOAuthAuthorizationUrl() {
             syncOAuthFieldsFromTokenManager();
+            syncTokenManagerFromOAuthFields();
             saveOAuthFormState();
+            saveOAuthContextSnapshot();
             const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
@@ -1613,8 +1711,11 @@
         }
 
         async function fetchOAuth2Token(forceRefresh = false) {
+            restoreOAuthContextSnapshot();
             syncOAuthFieldsFromTokenManager();
             syncTokenManagerFromOAuthFields();
+            saveOAuthFormState();
+            saveOAuthContextSnapshot();
             const resolvedTokenUrl = ensureOAuthTokenUrls();
             const tokenUrl = (forceRefresh && oauth2RefreshTokenUrl && oauth2RefreshTokenUrl.value.trim()) ? oauth2RefreshTokenUrl.value.trim() : resolvedTokenUrl;
             if (!tokenUrl) {
