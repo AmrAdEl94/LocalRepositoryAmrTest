@@ -1319,6 +1319,40 @@
             return '';
         }
 
+        function getActiveOAuthClientId() {
+            const directClientId = (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '';
+            if (directClientId) {
+                return directClientId;
+            }
+
+            try {
+                const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
+                if (authUrlValue) {
+                    const authUrl = new URL(authUrlValue, window.location.href);
+                    const clientIdInAuthUrl = authUrl.searchParams.get('client_id');
+                    if (clientIdInAuthUrl) {
+                        return clientIdInAuthUrl;
+                    }
+                }
+            } catch (error) {
+                // Ignore malformed auth URLs.
+            }
+
+            try {
+                const rawState = localStorage.getItem('oauth2FormState');
+                if (rawState) {
+                    const state = JSON.parse(rawState);
+                    if (state.oauth2ClientId) {
+                        return state.oauth2ClientId;
+                    }
+                }
+            } catch (error) {
+                // Ignore malformed stored state.
+            }
+
+            return '';
+        }
+
         function syncOAuthFieldsFromTokenManager() {
             if (tokenAuthUrlInput && oauth2AuthUrl) {
                 oauth2AuthUrl.value = tokenAuthUrlInput.value.trim();
@@ -1445,12 +1479,9 @@
                 throw new Error('Enter an Auth URL before opening the authorization page.');
             }
             const callbackUrl = ensureOAuthCallbackUrl();
-            const clientId = (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '';
+            const clientId = getActiveOAuthClientId();
             const scope = (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '';
             const state = (oauth2State && oauth2State.value.trim()) || '';
-            if (!clientId) {
-                throw new Error('Enter a Client ID before opening the authorization page.');
-            }
             const authUrl = new URL(authUrlValue);
             authUrl.searchParams.set('response_type', 'code');
             if (clientId) authUrl.searchParams.set('client_id', clientId);
@@ -1596,7 +1627,7 @@
             const callbackUrl = ensureOAuthCallbackUrl();
             const activeAuthorizationCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim();
             const activeAccessToken = (oauth2AccessToken && oauth2AccessToken.value.trim()) || (tokenValueInput ? tokenValueInput.value.trim() : '');
-            const clientId = (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '';
+            const clientId = getActiveOAuthClientId();
             const clientSecret = (oauth2ClientSecret && oauth2ClientSecret.value.trim()) || (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '';
             const scope = (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '';
             const state = (oauth2State && oauth2State.value.trim()) || '';
@@ -1604,7 +1635,7 @@
             const username = (oauth2Username && oauth2Username.value.trim()) || '';
             const password = (oauth2Password && oauth2Password.value.trim()) || '';
             if (!forceRefresh && grantType === 'authorization_code' && !clientId) {
-                throw new Error('Enter a Client ID before requesting an OAuth 2.0 token.');
+                console.warn('No client ID was found for the OAuth token exchange. Continuing without it.');
             }
             if (forceRefresh) {
                 if (!refreshToken) {
