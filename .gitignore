@@ -164,4 +164,4 @@ yarn-error.log*
 next-env.d.ts
 
 # Local token file with real OAuth client secrets - never commit
-token.xml
+TOKENS.json

@@ -888,6 +888,25 @@
             display: flex;
             gap: 6px;
         }
+        .headers-table select {
+            width: 100%;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--text);
+            background-color: var(--surface);
+        }
+        .env-var-enabled-cell {
+            text-align: center;
+        }
+        .env-var-enabled {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
 
         @media (max-width: 900px) {
             .form-grid {
@@ -1276,14 +1295,14 @@
                             <p class="card-subtitle">Configure OAuth clients, then generate and save access tokens.</p>
                         </div>
                         <div class="toolbar">
-                            <input type="file" id="importTokensInput" accept=".xml,text/xml,application/xml" hidden>
+                            <input type="file" id="importTokensInput" accept=".json,application/json" hidden>
                             <button type="button" id="importTokensBtn" class="btn btn-secondary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
-                                Import XML
+                                Import JSON
                             </button>
                             <button type="button" id="exportTokensBtn" class="btn btn-secondary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
-                                Export XML
+                                Export JSON
                             </button>
                             <button id="newTokenBtn" class="btn btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
@@ -1369,6 +1388,11 @@
                             <p class="card-subtitle">Define variables once and use them as <code>{{name}}</code> in Collection and Tokens. Choose the active environment from the top bar.</p>
                         </div>
                         <div class="toolbar">
+                            <input type="file" id="importEnvironmentInput" accept=".json,application/json" multiple hidden>
+                            <button type="button" id="importEnvironmentBtn" class="btn btn-secondary" title="Import one or more ENVIRONMENT.json files (one environment per file)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                                Import
+                            </button>
                             <button type="button" id="newEnvironmentBtn" class="btn btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                                 New Environment
@@ -1403,8 +1427,10 @@
                                 <table class="headers-table">
                                     <thead>
                                         <tr>
+                                            <th style="width: 44px;" title="Enabled">On</th>
                                             <th>Variable</th>
                                             <th>Value</th>
+                                            <th style="width: 130px;">Type</th>
                                             <th style="width: 50px;">Action</th>
                                         </tr>
                                     </thead>
@@ -1544,6 +1570,8 @@
         const exportTokensBtn = document.getElementById('exportTokensBtn');
         const activeEnvironmentSelect = document.getElementById('activeEnvironmentSelect');
         const newEnvironmentBtn = document.getElementById('newEnvironmentBtn');
+        const importEnvironmentBtn = document.getElementById('importEnvironmentBtn');
+        const importEnvironmentInput = document.getElementById('importEnvironmentInput');
         const environmentTableBody = document.getElementById('environmentTableBody');
         const environmentEditor = document.getElementById('environmentEditor');
         const environmentEditorTitle = document.getElementById('environmentEditorTitle');
@@ -1733,10 +1761,57 @@
         let activeEnvironmentName = '';
         let currentEnvironmentIndex = null;
 
+        const environmentVariableTypes = ['default', 'secret', 'any'];
+
+        function generateEnvironmentId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+                const random = Math.random() * 16 | 0;
+                return (char === 'x' ? random : (random & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        // Converts an environment in the ENVIRONMENT.json format ({ id, name, values: [{ key, value, type, enabled }] })
+        // or the older stored format ({ name, variables }) into the shape used by the website.
+        // Problems with individual variables are appended to `problems`.
+        function normalizeEnvironmentData(raw, problems = []) {
+            const sourceVariables = Array.isArray(raw.values) ? raw.values : (Array.isArray(raw.variables) ? raw.variables : []);
+            const variables = [];
+            const seenKeys = new Set();
+            sourceVariables.forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                const key = (item.key === undefined || item.key === null ? '' : item.key).toString().trim();
+                if (!key) return;
+                if (/[{}]/.test(key)) {
+                    problems.push(`"${key}" cannot contain { or }`);
+                    return;
+                }
+                if (seenKeys.has(key)) {
+                    problems.push(`"${key}" is listed more than once`);
+                    return;
+                }
+                seenKeys.add(key);
+                variables.push({
+                    key,
+                    value: item.value === undefined || item.value === null ? '' : item.value.toString(),
+                    type: environmentVariableTypes.includes(item.type) ? item.type : 'default',
+                    enabled: item.enabled !== false
+                });
+            });
+            return {
+                id: (raw.id || '').toString() || generateEnvironmentId(),
+                name: (raw.name || '').toString().trim(),
+                variables,
+                color: raw.color === undefined ? null : raw.color
+            };
+        }
+
         function loadEnvironments() {
             try {
                 const stored = localStorage.getItem('collectionEnvironments');
-                environmentList = stored ? JSON.parse(stored) : [];
+                environmentList = (stored ? JSON.parse(stored) : []).map(environment => normalizeEnvironmentData(environment));
             } catch (error) {
                 environmentList = [];
             }
@@ -1760,7 +1835,7 @@
             return index === -1 ? null : environmentList[index];
         }
 
-        // Replaces {{name}} placeholders with values from the active environment.
+        // Replaces {{name}} placeholders with values from the active environment (enabled variables only).
         // Unknown variables are left as-is so they stay visible in the request preview.
         function resolveEnvVars(value) {
             if (value === null || value === undefined) return '';
@@ -1768,7 +1843,7 @@
             const environment = getActiveEnvironment();
             if (!environment || !text.includes('{{')) return text;
             return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name) => {
-                const variable = (environment.variables || []).find(item => item.key === name);
+                const variable = (environment.variables || []).find(item => item.key === name && item.enabled !== false);
                 return variable ? variable.value : match;
             });
         }
@@ -1797,7 +1872,7 @@
         function renderEnvironmentTable() {
             environmentTableBody.innerHTML = '';
             if (!environmentList.length) {
-                environmentTableBody.innerHTML = '<tr><td colspan="4" class="cell-muted">No environments yet. Click "New Environment" to create one.</td></tr>';
+                environmentTableBody.innerHTML = '<tr><td colspan="4" class="cell-muted">No environments yet. Click "New Environment" or "Import" to add one.</td></tr>';
             }
             const activeEnvironment = getActiveEnvironment();
             environmentList.forEach((environment, index) => {
@@ -1811,6 +1886,7 @@
                         <div class="environment-row-actions">
                             <button type="button" class="btn btn-secondary" data-env-action="edit" data-env-index="${index}">Edit</button>
                             <button type="button" class="btn btn-secondary" data-env-action="activate" data-env-index="${index}">${isActive ? 'Deactivate' : 'Set Active'}</button>
+                            <button type="button" class="btn btn-secondary" data-env-action="export" data-env-index="${index}">Export</button>
                             <button type="button" class="btn-small" data-env-action="delete" data-env-index="${index}">Delete</button>
                         </div>
                     </td>
@@ -1820,15 +1896,33 @@
             renderEnvironmentSelect();
         }
 
-        function addEnvironmentVariableRow(key = '', value = '') {
+        function addEnvironmentVariableRow(variable = {}) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" class="env-var-key" placeholder="Variable name, e.g. clientId"></td>
+                <td class="env-var-enabled-cell"><input type="checkbox" class="env-var-enabled" title="Enabled"></td>
+                <td><input type="text" class="env-var-key" placeholder="Variable name, e.g. client_id"></td>
                 <td><input type="text" class="env-var-value" placeholder="Value"></td>
+                <td>
+                    <select class="env-var-type">
+                        <option value="default">Default</option>
+                        <option value="secret">Secret</option>
+                        <option value="any">Any</option>
+                    </select>
+                </td>
                 <td class="header-row-actions"><button type="button" class="btn-small">Delete</button></td>
             `;
-            row.querySelector('.env-var-key').value = key;
-            row.querySelector('.env-var-value').value = value;
+            const enabledInput = row.querySelector('.env-var-enabled');
+            const valueInput = row.querySelector('.env-var-value');
+            const typeSelect = row.querySelector('.env-var-type');
+            enabledInput.checked = variable.enabled !== false;
+            row.querySelector('.env-var-key').value = variable.key || '';
+            valueInput.value = variable.value || '';
+            typeSelect.value = environmentVariableTypes.includes(variable.type) ? variable.type : 'default';
+            const syncSecretMask = () => {
+                valueInput.type = typeSelect.value === 'secret' ? 'password' : 'text';
+            };
+            syncSecretMask();
+            typeSelect.addEventListener('change', syncSecretMask);
             row.querySelector('.btn-small').addEventListener('click', () => row.remove());
             environmentVariablesBody.appendChild(row);
         }
@@ -1839,7 +1933,7 @@
             environmentEditorTitle.textContent = index === null ? 'New Environment' : `Edit Environment: ${environment.name}`;
             environmentNameInput.value = environment.name;
             environmentVariablesBody.innerHTML = '';
-            (environment.variables || []).forEach(variable => addEnvironmentVariableRow(variable.key, variable.value));
+            (environment.variables || []).forEach(variable => addEnvironmentVariableRow(variable));
             if (!(environment.variables || []).length) addEnvironmentVariableRow();
             environmentEditor.classList.remove('hidden');
         }
@@ -1859,30 +1953,25 @@
                 alert(`An environment named "${name}" already exists. Environment names must be unique.`);
                 return;
             }
-            const variables = [];
-            const seenKeys = new Set();
+            const rows = Array.from(environmentVariablesBody.querySelectorAll('tr')).map(row => ({
+                key: row.querySelector('.env-var-key').value,
+                value: row.querySelector('.env-var-value').value.trim(),
+                type: row.querySelector('.env-var-type').value,
+                enabled: row.querySelector('.env-var-enabled').checked
+            }));
             const problems = [];
-            environmentVariablesBody.querySelectorAll('tr').forEach(row => {
-                const key = row.querySelector('.env-var-key').value.trim();
-                const value = row.querySelector('.env-var-value').value.trim();
-                if (!key) return;
-                if (/[{}]/.test(key)) {
-                    problems.push(`"${key}" cannot contain { or }`);
-                    return;
-                }
-                if (seenKeys.has(key)) {
-                    problems.push(`"${key}" is listed more than once`);
-                    return;
-                }
-                seenKeys.add(key);
-                variables.push({ key, value });
-            });
+            const existing = currentEnvironmentIndex === null ? null : environmentList[currentEnvironmentIndex];
+            const environment = normalizeEnvironmentData({
+                id: existing ? existing.id : '',
+                name,
+                values: rows,
+                color: existing ? existing.color : null
+            }, problems);
             if (problems.length) {
                 alert(`Fix these variables before saving:\n- ${problems.join('\n- ')}`);
                 return;
             }
-            const wasActive = currentEnvironmentIndex !== null && environmentList[currentEnvironmentIndex] === getActiveEnvironment();
-            const environment = { name, variables };
+            const wasActive = existing !== null && existing === getActiveEnvironment();
             if (currentEnvironmentIndex === null) {
                 environmentList.push(environment);
                 currentEnvironmentIndex = environmentList.length - 1;
@@ -1913,6 +2002,96 @@
             activeEnvironmentName = name || '';
             saveEnvironments();
             renderEnvironmentTable();
+        }
+
+        // Each selected file holds one environment in the ENVIRONMENT.json format.
+        async function importEnvironmentFiles(files) {
+            const candidates = [];
+            const errors = [];
+            for (const file of files) {
+                try {
+                    const data = parseJsonText(await file.text());
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        throw new Error('Expected one environment object like ENVIRONMENT.json.');
+                    }
+                    const problems = [];
+                    const environment = normalizeEnvironmentData(data, problems);
+                    if (!environment.name) {
+                        throw new Error('The environment has no "name".');
+                    }
+                    problems.forEach(problem => errors.push(`${file.name}: skipped variable ${problem}`));
+                    candidates.push({ environment, fileName: file.name });
+                } catch (error) {
+                    errors.push(`${file.name}: ${error.message}`);
+                }
+            }
+
+            const seenNames = new Set();
+            const uniqueCandidates = [];
+            candidates.forEach(candidate => {
+                const key = normalizeName(candidate.environment.name);
+                if (seenNames.has(key)) {
+                    errors.push(`${candidate.fileName}: "${candidate.environment.name}" was already in another selected file, ignored`);
+                    return;
+                }
+                seenNames.add(key);
+                uniqueCandidates.push(candidate);
+            });
+
+            const conflicts = uniqueCandidates.filter(candidate => findEnvironmentIndexByName(candidate.environment.name) !== -1);
+            let replaceExisting = false;
+            if (conflicts.length) {
+                replaceExisting = confirm(`These environment names already exist on the website:\n- ${conflicts.map(candidate => candidate.environment.name).join('\n- ')}\n\nOK = replace them with the imported values\nCancel = keep the existing environments and skip these`);
+            }
+
+            let added = 0;
+            let replaced = 0;
+            let skipped = 0;
+            uniqueCandidates.forEach(({ environment }) => {
+                const existingIndex = findEnvironmentIndexByName(environment.name);
+                if (existingIndex === -1) {
+                    environmentList.push(environment);
+                    added++;
+                } else if (replaceExisting) {
+                    if (environmentList[existingIndex] === getActiveEnvironment()) activeEnvironmentName = environment.name;
+                    environmentList[existingIndex] = environment;
+                    replaced++;
+                } else {
+                    skipped++;
+                }
+            });
+            if (added || replaced) {
+                closeEnvironmentEditor();
+                saveEnvironments();
+                renderEnvironmentTable();
+            }
+
+            const summary = [`Import finished: ${added} added, ${replaced} replaced, ${skipped} skipped.`];
+            if (errors.length) summary.push(...errors);
+            alert(summary.join('\n'));
+        }
+
+        function buildEnvironmentJson(environment) {
+            return {
+                id: environment.id || generateEnvironmentId(),
+                name: environment.name,
+                values: (environment.variables || []).map(variable => ({
+                    key: variable.key,
+                    value: variable.value,
+                    type: environmentVariableTypes.includes(variable.type) ? variable.type : 'default',
+                    enabled: variable.enabled !== false
+                })),
+                color: environment.color === undefined ? null : environment.color,
+                _postman_variable_scope: 'environment',
+                _postman_exported_at: new Date().toISOString(),
+                _postman_exported_using: 'WxCC Search API'
+            };
+        }
+
+        function exportEnvironment(index) {
+            const environment = environmentList[index];
+            const safeName = environment.name.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'environment';
+            downloadJsonFile(`ENVIRONMENT_${safeName}.json`, buildEnvironmentJson(environment));
         }
 
         function findTokenIndexByName(name, excludeIndex = null) {
@@ -1946,38 +2125,60 @@
             }
         }
 
-        const tokenXmlFields = ['name', 'authUrl', 'accessTokenUrl', 'clientId', 'clientSecret', 'scope', 'callbackUrl', 'grantType', 'accessToken'];
+        const tokenFileFields = ['name', 'authUrl', 'accessTokenUrl', 'clientId', 'clientSecret', 'scope', 'callbackUrl', 'grantType', 'accessToken'];
 
-        function parseTokensXml(xmlText) {
-            const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
-            if (doc.getElementsByTagName('parsererror').length) {
-                throw new Error('The selected file is not valid XML.');
+        function downloadJsonFile(fileName, data) {
+            const blob = new Blob([JSON.stringify(data, null, '\t')], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function parseJsonText(text) {
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('The selected file is not valid JSON.');
             }
-            const tokenNodes = Array.from(doc.getElementsByTagName('token'));
-            if (!tokenNodes.length) {
-                throw new Error('No <token> entries were found in the XML file.');
+        }
+
+        // Accepts { "tokens": [ ... ] } (the TOKENS.json format), a plain array of tokens, or a single token object.
+        function parseTokensJson(jsonText) {
+            const data = parseJsonText(jsonText);
+            let items = null;
+            if (Array.isArray(data)) {
+                items = data;
+            } else if (data && Array.isArray(data.tokens)) {
+                items = data.tokens;
+            } else if (data && typeof data === 'object' && 'name' in data) {
+                items = [data];
             }
-            const readField = (node, ...names) => {
+            if (!items || !items.length) {
+                throw new Error('No tokens were found in the JSON file. Expected the TOKENS.json format: { "tokens": [ ... ] }.');
+            }
+            const readField = (token, ...names) => {
                 for (const fieldName of names) {
-                    const child = node.getElementsByTagName(fieldName)[0];
-                    if (child && child.textContent.trim()) return child.textContent.trim();
-                    const attribute = node.getAttribute(fieldName);
-                    if (attribute && attribute.trim()) return attribute.trim();
+                    const fieldValue = token[fieldName];
+                    if (fieldValue !== undefined && fieldValue !== null && fieldValue.toString().trim()) return fieldValue.toString().trim();
                 }
                 return '';
             };
             const supportedGrantTypes = Array.from(tokenGrantTypeSelect.options).map(option => option.value);
-            return tokenNodes.map(node => {
-                const value = readField(node, 'accessToken', 'value');
-                const grantType = readField(node, 'grantType');
+            return items.filter(token => token && typeof token === 'object').map(token => {
+                const value = readField(token, 'accessToken', 'value');
+                const grantType = readField(token, 'grantType');
                 return {
-                    name: readField(node, 'name'),
-                    authUrl: readField(node, 'authUrl'),
-                    accessTokenUrl: readField(node, 'accessTokenUrl'),
-                    clientId: readField(node, 'clientId'),
-                    clientSecret: readField(node, 'clientSecret'),
-                    scope: readField(node, 'scope'),
-                    callbackUrl: readField(node, 'callbackUrl'),
+                    name: readField(token, 'name'),
+                    authUrl: readField(token, 'authUrl'),
+                    accessTokenUrl: readField(token, 'accessTokenUrl'),
+                    clientId: readField(token, 'clientId'),
+                    clientSecret: readField(token, 'clientSecret'),
+                    scope: readField(token, 'scope'),
+                    callbackUrl: readField(token, 'callbackUrl'),
                     grantType: supportedGrantTypes.includes(grantType) ? grantType : 'authorization_code',
                     value,
                     accessToken: value
@@ -1985,8 +2186,8 @@
             });
         }
 
-        function importTokensFromXml(xmlText) {
-            const importedTokens = parseTokensXml(xmlText);
+        function importTokensFromJson(jsonText) {
+            const importedTokens = parseTokensJson(jsonText);
             const seenNames = new Set();
             const uniqueTokens = [];
             let missingNameCount = 0;
@@ -2031,37 +2232,29 @@
 
             const summary = [`Import finished: ${added} added, ${replaced} replaced, ${skipped} skipped.`];
             if (duplicatesInFile.length) summary.push(`Ignored repeated names in the file (first one kept): ${duplicatesInFile.join(', ')}`);
-            if (missingNameCount) summary.push(`Ignored ${missingNameCount} token(s) without a <name>.`);
+            if (missingNameCount) summary.push(`Ignored ${missingNameCount} token(s) without a "name".`);
             alert(summary.join('\n'));
         }
 
-        function buildTokensXml() {
-            const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<tokens>'];
-            tokenList.forEach(token => {
-                const values = { ...token, accessToken: getStoredTokenValue(token) };
-                lines.push('    <token>');
-                tokenXmlFields.forEach(field => {
-                    lines.push(`        <${field}>${escapeHtml((values[field] || '').toString())}</${field}>`);
-                });
-                lines.push('    </token>');
-            });
-            lines.push('</tokens>');
-            return lines.join('\n');
+        function buildTokensJson() {
+            return {
+                tokens: tokenList.map(token => {
+                    const values = { ...token, accessToken: getStoredTokenValue(token) };
+                    const exported = {};
+                    tokenFileFields.forEach(field => {
+                        exported[field] = (values[field] || '').toString();
+                    });
+                    return exported;
+                })
+            };
         }
 
-        function exportTokensToXml() {
+        function exportTokensToJson() {
             if (!tokenList.length) {
                 alert('There are no saved tokens to export.');
                 return;
             }
-            const blob = new Blob([buildTokensXml()], { type: 'application/xml' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'token.xml';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(link.href);
+            downloadJsonFile('TOKENS.json', buildTokensJson());
         }
 
         function saveToken() {
@@ -3416,14 +3609,21 @@
                 importTokensInput.value = '';
                 if (!file) return;
                 try {
-                    importTokensFromXml(await file.text());
+                    importTokensFromJson(await file.text());
                 } catch (error) {
                     alert(error.message);
                 }
             });
         }
-        if (exportTokensBtn) exportTokensBtn.addEventListener('click', exportTokensToXml);
+        if (exportTokensBtn) exportTokensBtn.addEventListener('click', exportTokensToJson);
         newEnvironmentBtn.addEventListener('click', () => openEnvironmentEditor(null));
+        importEnvironmentBtn.addEventListener('click', () => importEnvironmentInput.click());
+        importEnvironmentInput.addEventListener('change', async () => {
+            const files = Array.from(importEnvironmentInput.files || []);
+            importEnvironmentInput.value = '';
+            if (!files.length) return;
+            await importEnvironmentFiles(files);
+        });
         addEnvironmentVariableBtn.addEventListener('click', () => addEnvironmentVariableRow());
         saveEnvironmentBtn.addEventListener('click', saveEnvironment);
         cancelEnvironmentBtn.addEventListener('click', closeEnvironmentEditor);
@@ -3437,6 +3637,8 @@
             } else if (button.dataset.envAction === 'activate') {
                 const isActive = environmentList[index] === getActiveEnvironment();
                 setActiveEnvironment(isActive ? '' : environmentList[index].name);
+            } else if (button.dataset.envAction === 'export') {
+                exportEnvironment(index);
             } else if (button.dataset.envAction === 'delete') {
                 deleteEnvironment(index);
             }
