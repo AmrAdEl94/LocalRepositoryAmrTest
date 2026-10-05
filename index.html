@@ -211,26 +211,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .header-meta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-muted);
-            background: var(--surface-muted);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 4px 10px;
-            white-space: nowrap;
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 0 3px var(--success-soft);
-        }
         .toggle-btn {
             background: none;
             border: 1px solid transparent;
@@ -831,6 +811,84 @@
             pointer-events: none;
         }
 
+        /* ---------- Environments ---------- */
+        .env-switcher {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .env-switcher label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .env-switcher select {
+            appearance: none;
+            -webkit-appearance: none;
+            min-width: 190px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            padding: 7px 34px 7px 12px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+            cursor: pointer;
+        }
+        .env-switcher select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--focus-ring);
+        }
+        .env-switcher.is-active select {
+            border-color: #86efac;
+            background-color: var(--success-soft);
+            color: #166534;
+        }
+        .env-hint {
+            grid-column: 1 / -1;
+            font-size: 12.5px;
+            color: var(--text-muted);
+            background: var(--primary-soft);
+            border: 1px solid #c7d7fb;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+        }
+        .env-hint code,
+        .card-subtitle code {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--primary);
+        }
+        .environment-editor {
+            border-top: 1px solid var(--border);
+            margin-top: 24px;
+            padding-top: 24px;
+        }
+        .environment-editor h6 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .environment-name-row {
+            max-width: 420px;
+            margin-bottom: 18px;
+        }
+        #environmentTable td:nth-child(2),
+        #environmentTable td:last-child {
+            white-space: nowrap;
+        }
+        #environmentTable .btn {
+            padding: 5px 12px;
+            font-size: 13px;
+        }
+        .environment-row-actions {
+            display: flex;
+            gap: 6px;
+        }
+
         @media (max-width: 900px) {
             .form-grid {
                 grid-template-columns: minmax(0, 1fr);
@@ -845,8 +903,12 @@
             .header {
                 padding: 0 16px;
             }
-            .header-meta {
+            .env-switcher label {
                 display: none;
+            }
+            .env-switcher select {
+                min-width: 0;
+                width: 150px;
             }
             .cors-toggle {
                 margin-left: 0;
@@ -886,6 +948,10 @@
                 <i class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg></i>
                 <span>Tokens</span>
             </li>
+            <li data-page="environments" title="Environments">
+                <i class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></svg></i>
+                <span>Environments</span>
+            </li>
             <li data-page="analytics" title="Analytics">
                 <i class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-9"/></svg></i>
                 <span>Analytics</span>
@@ -902,7 +968,12 @@
                 </button>
                 <h1>WxCC Search API</h1>
             </div>
-            <div class="header-meta"><span class="status-dot"></span>Webex Contact Center</div>
+            <div class="env-switcher">
+                <label for="activeEnvironmentSelect">Environment</label>
+                <select id="activeEnvironmentSelect" title="Active environment: its {{variables}} are used in Collection and Tokens">
+                    <option value="">No Environment</option>
+                </select>
+            </div>
         </div>
 
         <div class="content">
@@ -1049,6 +1120,7 @@
                         <div id="apiEditor" class="api-editor hidden">
                             <h6>API Details</h6>
                             <div class="form-grid">
+                                <div class="env-hint">Tip: use <code>{{variable}}</code> in the URL, parameters, headers, body or auth fields. Values come from the active environment when you send the request.</div>
                                 <div class="field-row">
                                     <label for="apiName">Name</label>
                                     <input id="apiName" type="text" placeholder="Example: Search Devices">
@@ -1221,6 +1293,7 @@
                     </div>
                     <div class="card-body token-manager-section">
                         <div class="token-form">
+                            <div class="env-hint">Tip: any field can use <code>{{variable}}</code>, for example <code>{{clientSecret}}</code>. Values come from the active environment when you generate the token.</div>
                             <div class="field-row">
                                 <label for="tokenNameInput">Token Name</label>
                                 <input id="tokenNameInput" type="text" placeholder="Example: Webex Access Token">
@@ -1282,6 +1355,67 @@
                                 </thead>
                                 <tbody id="tokenTableBody"></tbody>
                             </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="environments" class="page hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h5 class="card-title">Environments</h5>
+                            <p class="card-subtitle">Define variables once and use them as <code>{{name}}</code> in Collection and Tokens. Choose the active environment from the top bar.</p>
+                        </div>
+                        <div class="toolbar">
+                            <button type="button" id="newEnvironmentBtn" class="btn btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                                New Environment
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-wrap">
+                            <table id="environmentTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Variables</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="environmentTableBody"></tbody>
+                            </table>
+                        </div>
+
+                        <div id="environmentEditor" class="environment-editor hidden">
+                            <h6 id="environmentEditorTitle">New Environment</h6>
+                            <div class="field-row environment-name-row">
+                                <label for="environmentNameInput">Environment Name</label>
+                                <input id="environmentNameInput" type="text" placeholder="Example: Production">
+                            </div>
+                            <div class="headers-section">
+                                <div class="headers-section-title">
+                                    <span>Variables</span>
+                                </div>
+                                <table class="headers-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Variable</th>
+                                            <th>Value</th>
+                                            <th style="width: 50px;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="environmentVariablesBody">
+                                    </tbody>
+                                </table>
+                                <button type="button" class="btn-add-header" id="addEnvironmentVariableBtn">+ Add Variable</button>
+                            </div>
+                            <div class="editor-actions">
+                                <button type="button" id="saveEnvironmentBtn" class="btn btn-primary">Save Environment</button>
+                                <button type="button" id="cancelEnvironmentBtn" class="btn btn-secondary">Close</button>
                             </div>
                         </div>
                     </div>
@@ -1408,6 +1542,16 @@
         const importTokensBtn = document.getElementById('importTokensBtn');
         const importTokensInput = document.getElementById('importTokensInput');
         const exportTokensBtn = document.getElementById('exportTokensBtn');
+        const activeEnvironmentSelect = document.getElementById('activeEnvironmentSelect');
+        const newEnvironmentBtn = document.getElementById('newEnvironmentBtn');
+        const environmentTableBody = document.getElementById('environmentTableBody');
+        const environmentEditor = document.getElementById('environmentEditor');
+        const environmentEditorTitle = document.getElementById('environmentEditorTitle');
+        const environmentNameInput = document.getElementById('environmentNameInput');
+        const environmentVariablesBody = document.getElementById('environmentVariablesBody');
+        const addEnvironmentVariableBtn = document.getElementById('addEnvironmentVariableBtn');
+        const saveEnvironmentBtn = document.getElementById('saveEnvironmentBtn');
+        const cancelEnvironmentBtn = document.getElementById('cancelEnvironmentBtn');
         const generateTokenBtn = document.getElementById('generateTokenBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
@@ -1581,13 +1725,199 @@
             syncTokenDisplay('');
         }
 
-        function normalizeTokenName(name) {
+        function normalizeName(name) {
             return (name || '').toString().trim().toLowerCase();
         }
 
+        let environmentList = [];
+        let activeEnvironmentName = '';
+        let currentEnvironmentIndex = null;
+
+        function loadEnvironments() {
+            try {
+                const stored = localStorage.getItem('collectionEnvironments');
+                environmentList = stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                environmentList = [];
+            }
+            activeEnvironmentName = localStorage.getItem('activeEnvironment') || '';
+            if (!getActiveEnvironment()) activeEnvironmentName = '';
+        }
+
+        function saveEnvironments() {
+            localStorage.setItem('collectionEnvironments', JSON.stringify(environmentList));
+            localStorage.setItem('activeEnvironment', activeEnvironmentName);
+        }
+
+        function findEnvironmentIndexByName(name, excludeIndex = null) {
+            const key = normalizeName(name);
+            return environmentList.findIndex((environment, index) => index !== excludeIndex && normalizeName(environment.name) === key);
+        }
+
+        function getActiveEnvironment() {
+            if (!activeEnvironmentName) return null;
+            const index = findEnvironmentIndexByName(activeEnvironmentName);
+            return index === -1 ? null : environmentList[index];
+        }
+
+        // Replaces {{name}} placeholders with values from the active environment.
+        // Unknown variables are left as-is so they stay visible in the request preview.
+        function resolveEnvVars(value) {
+            if (value === null || value === undefined) return '';
+            const text = value.toString();
+            const environment = getActiveEnvironment();
+            if (!environment || !text.includes('{{')) return text;
+            return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name) => {
+                const variable = (environment.variables || []).find(item => item.key === name);
+                return variable ? variable.value : match;
+            });
+        }
+
+        function resolveEnvMap(map) {
+            const resolved = {};
+            Object.entries(map).forEach(([key, value]) => {
+                resolved[resolveEnvVars(key)] = resolveEnvVars(value);
+            });
+            return resolved;
+        }
+
+        function renderEnvironmentSelect() {
+            activeEnvironmentSelect.innerHTML = '<option value="">No Environment</option>';
+            environmentList.forEach(environment => {
+                const option = document.createElement('option');
+                option.value = environment.name;
+                option.textContent = environment.name;
+                activeEnvironmentSelect.appendChild(option);
+            });
+            const activeEnvironment = getActiveEnvironment();
+            activeEnvironmentSelect.value = activeEnvironment ? activeEnvironment.name : '';
+            activeEnvironmentSelect.closest('.env-switcher').classList.toggle('is-active', !!activeEnvironment);
+        }
+
+        function renderEnvironmentTable() {
+            environmentTableBody.innerHTML = '';
+            if (!environmentList.length) {
+                environmentTableBody.innerHTML = '<tr><td colspan="4" class="cell-muted">No environments yet. Click "New Environment" to create one.</td></tr>';
+            }
+            const activeEnvironment = getActiveEnvironment();
+            environmentList.forEach((environment, index) => {
+                const isActive = environment === activeEnvironment;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(environment.name)}</td>
+                    <td class="cell-muted">${(environment.variables || []).length}</td>
+                    <td><span class="badge ${isActive ? 'badge-success' : 'badge-muted'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <div class="environment-row-actions">
+                            <button type="button" class="btn btn-secondary" data-env-action="edit" data-env-index="${index}">Edit</button>
+                            <button type="button" class="btn btn-secondary" data-env-action="activate" data-env-index="${index}">${isActive ? 'Deactivate' : 'Set Active'}</button>
+                            <button type="button" class="btn-small" data-env-action="delete" data-env-index="${index}">Delete</button>
+                        </div>
+                    </td>
+                `;
+                environmentTableBody.appendChild(row);
+            });
+            renderEnvironmentSelect();
+        }
+
+        function addEnvironmentVariableRow(key = '', value = '') {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" class="env-var-key" placeholder="Variable name, e.g. clientId"></td>
+                <td><input type="text" class="env-var-value" placeholder="Value"></td>
+                <td class="header-row-actions"><button type="button" class="btn-small">Delete</button></td>
+            `;
+            row.querySelector('.env-var-key').value = key;
+            row.querySelector('.env-var-value').value = value;
+            row.querySelector('.btn-small').addEventListener('click', () => row.remove());
+            environmentVariablesBody.appendChild(row);
+        }
+
+        function openEnvironmentEditor(index) {
+            currentEnvironmentIndex = index;
+            const environment = index === null ? { name: '', variables: [] } : environmentList[index];
+            environmentEditorTitle.textContent = index === null ? 'New Environment' : `Edit Environment: ${environment.name}`;
+            environmentNameInput.value = environment.name;
+            environmentVariablesBody.innerHTML = '';
+            (environment.variables || []).forEach(variable => addEnvironmentVariableRow(variable.key, variable.value));
+            if (!(environment.variables || []).length) addEnvironmentVariableRow();
+            environmentEditor.classList.remove('hidden');
+        }
+
+        function closeEnvironmentEditor() {
+            currentEnvironmentIndex = null;
+            environmentEditor.classList.add('hidden');
+        }
+
+        function saveEnvironment() {
+            const name = environmentNameInput.value.trim();
+            if (!name) {
+                alert('Enter an environment name before saving.');
+                return;
+            }
+            if (findEnvironmentIndexByName(name, currentEnvironmentIndex) !== -1) {
+                alert(`An environment named "${name}" already exists. Environment names must be unique.`);
+                return;
+            }
+            const variables = [];
+            const seenKeys = new Set();
+            const problems = [];
+            environmentVariablesBody.querySelectorAll('tr').forEach(row => {
+                const key = row.querySelector('.env-var-key').value.trim();
+                const value = row.querySelector('.env-var-value').value.trim();
+                if (!key) return;
+                if (/[{}]/.test(key)) {
+                    problems.push(`"${key}" cannot contain { or }`);
+                    return;
+                }
+                if (seenKeys.has(key)) {
+                    problems.push(`"${key}" is listed more than once`);
+                    return;
+                }
+                seenKeys.add(key);
+                variables.push({ key, value });
+            });
+            if (problems.length) {
+                alert(`Fix these variables before saving:\n- ${problems.join('\n- ')}`);
+                return;
+            }
+            const wasActive = currentEnvironmentIndex !== null && environmentList[currentEnvironmentIndex] === getActiveEnvironment();
+            const environment = { name, variables };
+            if (currentEnvironmentIndex === null) {
+                environmentList.push(environment);
+                currentEnvironmentIndex = environmentList.length - 1;
+            } else {
+                environmentList[currentEnvironmentIndex] = environment;
+            }
+            if (wasActive) activeEnvironmentName = name;
+            saveEnvironments();
+            renderEnvironmentTable();
+            openEnvironmentEditor(currentEnvironmentIndex);
+        }
+
+        function deleteEnvironment(index) {
+            const environment = environmentList[index];
+            if (!confirm(`Delete environment "${environment.name}"?`)) return;
+            if (environment === getActiveEnvironment()) activeEnvironmentName = '';
+            environmentList.splice(index, 1);
+            if (currentEnvironmentIndex === index) {
+                closeEnvironmentEditor();
+            } else if (currentEnvironmentIndex !== null && currentEnvironmentIndex > index) {
+                currentEnvironmentIndex--;
+            }
+            saveEnvironments();
+            renderEnvironmentTable();
+        }
+
+        function setActiveEnvironment(name) {
+            activeEnvironmentName = name || '';
+            saveEnvironments();
+            renderEnvironmentTable();
+        }
+
         function findTokenIndexByName(name, excludeIndex = null) {
-            const key = normalizeTokenName(name);
-            return tokenList.findIndex((token, index) => index !== excludeIndex && normalizeTokenName(token.name) === key);
+            const key = normalizeName(name);
+            return tokenList.findIndex((token, index) => index !== excludeIndex && normalizeName(token.name) === key);
         }
 
         // Decides where a token with this name may be stored so names stay unique.
@@ -1666,7 +1996,7 @@
                     missingNameCount++;
                     return;
                 }
-                const key = normalizeTokenName(token.name);
+                const key = normalizeName(token.name);
                 if (seenNames.has(key)) {
                     duplicatesInFile.push(token.name);
                     return;
@@ -1727,7 +2057,7 @@
             const blob = new Blob([buildTokensXml()], { type: 'application/xml' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'tokens.xml';
+            link.download = 'token.xml';
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -2101,8 +2431,8 @@
         }
 
         function isWebexAuthCodeFlowSelected() {
-            const authUrl = ((tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || '').toLowerCase();
-            const tokenUrl = ((tokenAccessUrlInput && tokenAccessUrlInput.value.trim()) || (oauth2AccessTokenUrl && oauth2AccessTokenUrl.value.trim()) || '').toLowerCase();
+            const authUrl = resolveEnvVars((tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || '').toLowerCase();
+            const tokenUrl = resolveEnvVars((tokenAccessUrlInput && tokenAccessUrlInput.value.trim()) || (oauth2AccessTokenUrl && oauth2AccessTokenUrl.value.trim()) || '').toLowerCase();
             return authUrl.includes('webexapis.com/v1/authorize') && tokenUrl.includes('webexapis.com/v1/access_token');
         }
 
@@ -2115,7 +2445,7 @@
             if (oauth2CallbackUrl) {
                 oauth2CallbackUrl.value = resolvedCallbackUrl;
             }
-            return resolvedCallbackUrl;
+            return resolveEnvVars(resolvedCallbackUrl);
         }
 
         function getStoredOAuthTokenUrl() {
@@ -2123,7 +2453,7 @@
         }
 
         function inferOAuthTokenUrl() {
-            const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
+            const authUrlValue = resolveEnvVars((oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '');
             if (!authUrlValue) {
                 return '';
             }
@@ -2149,13 +2479,13 @@
         }
 
         function getActiveOAuthClientId() {
-            const directClientId = (oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '';
+            const directClientId = resolveEnvVars((oauth2ClientId && oauth2ClientId.value.trim()) || (tokenClientIdInput && tokenClientIdInput.value.trim()) || '');
             if (directClientId) {
                 return directClientId;
             }
 
             try {
-                const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
+                const authUrlValue = resolveEnvVars((oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '');
                 if (authUrlValue) {
                     const authUrl = new URL(authUrlValue, window.location.href);
                     const clientIdInAuthUrl = authUrl.searchParams.get('client_id');
@@ -2172,7 +2502,7 @@
                 if (rawState) {
                     const state = JSON.parse(rawState);
                     if (state.clientId) {
-                        return state.clientId;
+                        return resolveEnvVars(state.clientId);
                     }
                 }
             } catch (error) {
@@ -2184,7 +2514,7 @@
                 if (rawState) {
                     const state = JSON.parse(rawState);
                     if (state.oauth2ClientId) {
-                        return state.oauth2ClientId;
+                        return resolveEnvVars(state.oauth2ClientId);
                     }
                 }
             } catch (error) {
@@ -2270,7 +2600,7 @@
             if (sourceUrl) {
                 localStorage.setItem('oauth2ResolvedTokenUrl', sourceUrl);
             }
-            return sourceUrl;
+            return resolveEnvVars(sourceUrl);
         }
 
         function extractOAuthCodeFromUrl(urlString) {
@@ -2326,13 +2656,13 @@
             syncTokenManagerFromOAuthFields();
             saveOAuthFormState();
             saveOAuthContextSnapshot();
-            const authUrlValue = (oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '';
+            const authUrlValue = resolveEnvVars((oauth2AuthUrl && oauth2AuthUrl.value.trim()) || (tokenAuthUrlInput && tokenAuthUrlInput.value.trim()) || '');
             if (!authUrlValue) {
                 throw new Error('Enter an Auth URL before opening the authorization page.');
             }
             const callbackUrl = ensureOAuthCallbackUrl();
             const clientId = getActiveOAuthClientId();
-            const scope = (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '';
+            const scope = resolveEnvVars((oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '');
             const state = (oauth2State && oauth2State.value.trim()) || '';
             const authUrl = new URL(authUrlValue);
             authUrl.searchParams.set('response_type', 'code');
@@ -2496,8 +2826,8 @@
             const activeAuthorizationCode = pendingOAuthAuthorizationCode || (oauth2AuthorizationCode ? oauth2AuthorizationCode.value.trim() : '') || (localStorage.getItem('oauth2PendingCode') || '').trim();
             const activeAccessToken = (oauth2AccessToken && oauth2AccessToken.value.trim()) || (tokenValueInput ? tokenValueInput.value.trim() : '');
             const clientId = getActiveOAuthClientId();
-            const clientSecret = (oauth2ClientSecret && oauth2ClientSecret.value.trim()) || (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '';
-            const scope = (oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '';
+            const clientSecret = resolveEnvVars((oauth2ClientSecret && oauth2ClientSecret.value.trim()) || (tokenClientSecretInput && tokenClientSecretInput.value.trim()) || '');
+            const scope = resolveEnvVars((oauth2Scope && oauth2Scope.value.trim()) || (tokenScopeInput && tokenScopeInput.value.trim()) || '');
             const state = (oauth2State && oauth2State.value.trim()) || '';
             const refreshToken = (oauth2RefreshToken && oauth2RefreshToken.value.trim()) || '';
             const username = (oauth2Username && oauth2Username.value.trim()) || '';
@@ -2792,9 +3122,9 @@
             }
             clearResponse();
 
-            const paramsMap = JSON.parse(api.params || '{}');
-            const headersMap = JSON.parse(api.headers || '{}');
-            
+            const paramsMap = resolveEnvMap(JSON.parse(api.params || '{}'));
+            const headersMap = resolveEnvMap(JSON.parse(api.headers || '{}'));
+
             const selectedTokenReference = (apiTokenReference ? apiTokenReference.value.trim() : '') || api.tokenRef || '';
             const selectedToken = tokenList.find(token => (token.name || '').trim() === selectedTokenReference.trim());
             if (currentAuthType === 'oauth2') {
@@ -2804,7 +3134,7 @@
                         alert('The selected saved OAuth token does not have a value to send.');
                         return;
                     }
-                    headersMap['Authorization'] = `Bearer ${tokenValue}`;
+                    headersMap['Authorization'] = `Bearer ${resolveEnvVars(tokenValue)}`;
                 } else {
                     const directToken = oauth2AccessToken ? oauth2AccessToken.value.trim() : '';
                     if (directToken) {
@@ -2828,15 +3158,15 @@
                     headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
                 }
             } else if (currentAuthType === 'basic') {
-                const username = basicAuthUsername.value.trim();
-                const password = basicAuthPassword.value.trim();
+                const username = resolveEnvVars(basicAuthUsername.value.trim());
+                const password = resolveEnvVars(basicAuthPassword.value.trim());
                 if (username || password) {
                     const credentials = btoa(`${username}:${password}`);
                     headersMap['Authorization'] = `Basic ${credentials}`;
                 }
             } else if (currentAuthType === 'bearer') {
                 if (bearerTokenInput) {
-                    const token = bearerTokenInput.value.trim();
+                    const token = resolveEnvVars(bearerTokenInput.value.trim());
                     if (token) {
                         headersMap['Authorization'] = `Bearer ${token}`;
                     }
@@ -2858,7 +3188,7 @@
                 });
             }
             
-            let requestUrl = api.url;
+            let requestUrl = resolveEnvVars(api.url);
             const query = buildQueryString(paramsMap);
             if (query) {
                 requestUrl += requestUrl.includes('?') ? '&' + query.slice(1) : query;
@@ -2873,10 +3203,10 @@
                 if (api.body) {
                     if (api.bodyFormat === 'XML') {
                         requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/xml';
-                        requestOptions.body = api.body;
+                        requestOptions.body = resolveEnvVars(api.body);
                     } else if (api.bodyFormat === 'JSON') {
                         requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/json';
-                        requestOptions.body = api.body;
+                        requestOptions.body = resolveEnvVars(api.body);
                     }
                 }
             }
@@ -3040,11 +3370,11 @@
                     }
                     const params = new URLSearchParams();
                     params.append('grant_type', tokenGrantTypeSelect.value || 'authorization_code');
-                    if (tokenClientIdInput.value.trim()) params.append('client_id', tokenClientIdInput.value.trim());
-                    if (tokenClientSecretInput.value.trim()) params.append('client_secret', tokenClientSecretInput.value.trim());
-                    if (tokenScopeInput.value.trim()) params.append('scope', tokenScopeInput.value.trim());
-                    if (tokenCallbackInput.value.trim()) params.append('redirect_uri', tokenCallbackInput.value.trim());
-                    const response = await fetch(tokenAccessUrlInput.value.trim(), {
+                    if (tokenClientIdInput.value.trim()) params.append('client_id', resolveEnvVars(tokenClientIdInput.value.trim()));
+                    if (tokenClientSecretInput.value.trim()) params.append('client_secret', resolveEnvVars(tokenClientSecretInput.value.trim()));
+                    if (tokenScopeInput.value.trim()) params.append('scope', resolveEnvVars(tokenScopeInput.value.trim()));
+                    if (tokenCallbackInput.value.trim()) params.append('redirect_uri', resolveEnvVars(tokenCallbackInput.value.trim()));
+                    const response = await fetch(resolveEnvVars(tokenAccessUrlInput.value.trim()), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: params.toString()
@@ -3093,11 +3423,31 @@
             });
         }
         if (exportTokensBtn) exportTokensBtn.addEventListener('click', exportTokensToXml);
+        newEnvironmentBtn.addEventListener('click', () => openEnvironmentEditor(null));
+        addEnvironmentVariableBtn.addEventListener('click', () => addEnvironmentVariableRow());
+        saveEnvironmentBtn.addEventListener('click', saveEnvironment);
+        cancelEnvironmentBtn.addEventListener('click', closeEnvironmentEditor);
+        activeEnvironmentSelect.addEventListener('change', () => setActiveEnvironment(activeEnvironmentSelect.value));
+        environmentTableBody.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-env-action]');
+            if (!button) return;
+            const index = Number(button.dataset.envIndex);
+            if (button.dataset.envAction === 'edit') {
+                openEnvironmentEditor(index);
+            } else if (button.dataset.envAction === 'activate') {
+                const isActive = environmentList[index] === getActiveEnvironment();
+                setActiveEnvironment(isActive ? '' : environmentList[index].name);
+            } else if (button.dataset.envAction === 'delete') {
+                deleteEnvironment(index);
+            }
+        });
         apiMethodInput.addEventListener('change', updateBodyState);
         apiBodyFormatInput.addEventListener('change', updateBodyState);
         saveApiBtn.addEventListener('click', saveApi);
         sendRequestBtn.addEventListener('click', sendRequest);
 
+        loadEnvironments();
+        renderEnvironmentTable();
         loadTokens();
         restoreOAuthFormState();
         applyDefaultOAuthTokenSettings();
