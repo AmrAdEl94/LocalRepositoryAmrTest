@@ -1204,6 +1204,15 @@
                             <p class="card-subtitle">Configure OAuth clients, then generate and save access tokens.</p>
                         </div>
                         <div class="toolbar">
+                            <input type="file" id="importTokensInput" accept=".xml,text/xml,application/xml" hidden>
+                            <button type="button" id="importTokensBtn" class="btn btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                                Import XML
+                            </button>
+                            <button type="button" id="exportTokensBtn" class="btn btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+                                Export XML
+                            </button>
                             <button id="newTokenBtn" class="btn btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                                 New OAuth Token
@@ -1396,6 +1405,9 @@
         const toggleTokenClientSecretBtn = document.getElementById('toggleTokenClientSecretBtn');
         const saveTokenBtn = document.getElementById('saveTokenBtn');
         const newTokenBtn = document.getElementById('newTokenBtn');
+        const importTokensBtn = document.getElementById('importTokensBtn');
+        const importTokensInput = document.getElementById('importTokensInput');
+        const exportTokensBtn = document.getElementById('exportTokensBtn');
         const generateTokenBtn = document.getElementById('generateTokenBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
@@ -1569,11 +1581,168 @@
             syncTokenDisplay('');
         }
 
+        function normalizeTokenName(name) {
+            return (name || '').toString().trim().toLowerCase();
+        }
+
+        function findTokenIndexByName(name, excludeIndex = null) {
+            const key = normalizeTokenName(name);
+            return tokenList.findIndex((token, index) => index !== excludeIndex && normalizeTokenName(token.name) === key);
+        }
+
+        // Decides where a token with this name may be stored so names stay unique.
+        // Returns { allowed, index } where index is null for a new entry.
+        function resolveTokenTargetIndex(name) {
+            const existingIndex = findTokenIndexByName(name, currentTokenIndex);
+            if (existingIndex === -1) {
+                return { allowed: true, index: currentTokenIndex };
+            }
+            const existingName = tokenList[existingIndex].name;
+            if (currentTokenIndex !== null) {
+                alert(`Another token is already named "${existingName}". Token names must be unique, choose a different name.`);
+                return { allowed: false, index: null };
+            }
+            if (!confirm(`A token named "${existingName}" already exists. Token names must be unique.\n\nOK = replace the existing token\nCancel = keep it and stop`)) {
+                return { allowed: false, index: null };
+            }
+            return { allowed: true, index: existingIndex };
+        }
+
+        function storeToken(tokenData, index) {
+            if (index === null) {
+                tokenList.push(tokenData);
+            } else {
+                tokenList[index] = tokenData;
+            }
+        }
+
+        const tokenXmlFields = ['name', 'authUrl', 'accessTokenUrl', 'clientId', 'clientSecret', 'scope', 'callbackUrl', 'grantType', 'accessToken'];
+
+        function parseTokensXml(xmlText) {
+            const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+            if (doc.getElementsByTagName('parsererror').length) {
+                throw new Error('The selected file is not valid XML.');
+            }
+            const tokenNodes = Array.from(doc.getElementsByTagName('token'));
+            if (!tokenNodes.length) {
+                throw new Error('No <token> entries were found in the XML file.');
+            }
+            const readField = (node, ...names) => {
+                for (const fieldName of names) {
+                    const child = node.getElementsByTagName(fieldName)[0];
+                    if (child && child.textContent.trim()) return child.textContent.trim();
+                    const attribute = node.getAttribute(fieldName);
+                    if (attribute && attribute.trim()) return attribute.trim();
+                }
+                return '';
+            };
+            const supportedGrantTypes = Array.from(tokenGrantTypeSelect.options).map(option => option.value);
+            return tokenNodes.map(node => {
+                const value = readField(node, 'accessToken', 'value');
+                const grantType = readField(node, 'grantType');
+                return {
+                    name: readField(node, 'name'),
+                    authUrl: readField(node, 'authUrl'),
+                    accessTokenUrl: readField(node, 'accessTokenUrl'),
+                    clientId: readField(node, 'clientId'),
+                    clientSecret: readField(node, 'clientSecret'),
+                    scope: readField(node, 'scope'),
+                    callbackUrl: readField(node, 'callbackUrl'),
+                    grantType: supportedGrantTypes.includes(grantType) ? grantType : 'authorization_code',
+                    value,
+                    accessToken: value
+                };
+            });
+        }
+
+        function importTokensFromXml(xmlText) {
+            const importedTokens = parseTokensXml(xmlText);
+            const seenNames = new Set();
+            const uniqueTokens = [];
+            let missingNameCount = 0;
+            const duplicatesInFile = [];
+            importedTokens.forEach(token => {
+                if (!token.name) {
+                    missingNameCount++;
+                    return;
+                }
+                const key = normalizeTokenName(token.name);
+                if (seenNames.has(key)) {
+                    duplicatesInFile.push(token.name);
+                    return;
+                }
+                seenNames.add(key);
+                uniqueTokens.push(token);
+            });
+
+            const conflicts = uniqueTokens.filter(token => findTokenIndexByName(token.name) !== -1);
+            let replaceExisting = false;
+            if (conflicts.length) {
+                replaceExisting = confirm(`These token names already exist on the website:\n- ${conflicts.map(token => token.name).join('\n- ')}\n\nOK = replace them with the imported values\nCancel = keep the existing tokens and skip these`);
+            }
+
+            let added = 0;
+            let replaced = 0;
+            let skipped = 0;
+            uniqueTokens.forEach(token => {
+                const existingIndex = findTokenIndexByName(token.name);
+                if (existingIndex === -1) {
+                    tokenList.push(token);
+                    added++;
+                } else if (replaceExisting) {
+                    tokenList[existingIndex] = token;
+                    replaced++;
+                } else {
+                    skipped++;
+                }
+            });
+            saveTokens();
+            renderTokenTable();
+
+            const summary = [`Import finished: ${added} added, ${replaced} replaced, ${skipped} skipped.`];
+            if (duplicatesInFile.length) summary.push(`Ignored repeated names in the file (first one kept): ${duplicatesInFile.join(', ')}`);
+            if (missingNameCount) summary.push(`Ignored ${missingNameCount} token(s) without a <name>.`);
+            alert(summary.join('\n'));
+        }
+
+        function buildTokensXml() {
+            const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<tokens>'];
+            tokenList.forEach(token => {
+                const values = { ...token, accessToken: getStoredTokenValue(token) };
+                lines.push('    <token>');
+                tokenXmlFields.forEach(field => {
+                    lines.push(`        <${field}>${escapeHtml((values[field] || '').toString())}</${field}>`);
+                });
+                lines.push('    </token>');
+            });
+            lines.push('</tokens>');
+            return lines.join('\n');
+        }
+
+        function exportTokensToXml() {
+            if (!tokenList.length) {
+                alert('There are no saved tokens to export.');
+                return;
+            }
+            const blob = new Blob([buildTokensXml()], { type: 'application/xml' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'tokens.xml';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(link.href);
+        }
+
         function saveToken() {
             const name = tokenNameInput.value.trim();
             const value = tokenValueInput.value.trim();
             if (!name) {
                 alert('Enter a token name before saving.');
+                return;
+            }
+            const target = resolveTokenTargetIndex(name);
+            if (!target.allowed) {
                 return;
             }
             const tokenData = {
@@ -1588,11 +1757,7 @@
                 value,
                 accessToken: value
             };
-            if (currentTokenIndex === null) {
-                tokenList.push(tokenData);
-            } else {
-                tokenList[currentTokenIndex] = tokenData;
-            }
+            storeToken(tokenData, target.index);
             saveTokens();
             renderTokenTable();
             resetTokenForm();
@@ -2841,6 +3006,11 @@
                     if (!tokenNameInput.value.trim()) {
                         throw new Error('Enter a token name before generating an OAuth token.');
                     }
+                    const tokenName = tokenNameInput.value.trim();
+                    const target = resolveTokenTargetIndex(tokenName);
+                    if (!target.allowed) {
+                        return;
+                    }
                     if (!tokenAccessUrlInput.value.trim() && tokenGrantTypeSelect.value !== 'authorization_code') {
                         throw new Error('Enter an Access Token URL before generating an OAuth token.');
                     }
@@ -2849,7 +3019,7 @@
                         syncTokenManagerFromOAuthFields();
                         await authorizeAndFetchToken();
                         const tokenData = {
-                            name: tokenNameInput.value.trim(),
+                            name: tokenName,
                             authUrl: tokenAuthUrlInput.value.trim(),
                             accessTokenUrl: tokenAccessUrlInput.value.trim(),
                             clientId: tokenClientIdInput.value.trim(),
@@ -2860,11 +3030,7 @@
                             value: tokenValueInput.value.trim() || (oauth2AccessToken ? oauth2AccessToken.value.trim() : ''),
                             accessToken: tokenValueInput.value.trim() || (oauth2AccessToken ? oauth2AccessToken.value.trim() : '')
                         };
-                        if (currentTokenIndex === null) {
-                            tokenList.push(tokenData);
-                        } else {
-                            tokenList[currentTokenIndex] = tokenData;
-                        }
+                        storeToken(tokenData, target.index);
                         saveTokens();
                         renderTokenTable();
                         return;
@@ -2894,7 +3060,7 @@
                     }
                     syncTokenDisplay(data.access_token);
                     const tokenData = {
-                        name: tokenNameInput.value.trim(),
+                        name: tokenName,
                         authUrl: tokenAuthUrlInput.value.trim(),
                         accessTokenUrl: tokenAccessUrlInput.value.trim(),
                         clientId: tokenClientIdInput.value.trim(),
@@ -2905,11 +3071,7 @@
                         value: data.access_token,
                         accessToken: data.access_token
                     };
-                    if (currentTokenIndex === null) {
-                        tokenList.push(tokenData);
-                    } else {
-                        tokenList[currentTokenIndex] = tokenData;
-                    }
+                    storeToken(tokenData, target.index);
                     saveTokens();
                     renderTokenTable();
                 } catch (error) {
@@ -2917,6 +3079,20 @@
                 }
             });
         }
+        if (importTokensBtn && importTokensInput) {
+            importTokensBtn.addEventListener('click', () => importTokensInput.click());
+            importTokensInput.addEventListener('change', async () => {
+                const file = importTokensInput.files && importTokensInput.files[0];
+                importTokensInput.value = '';
+                if (!file) return;
+                try {
+                    importTokensFromXml(await file.text());
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+        if (exportTokensBtn) exportTokensBtn.addEventListener('click', exportTokensToXml);
         apiMethodInput.addEventListener('change', updateBodyState);
         apiBodyFormatInput.addEventListener('change', updateBodyState);
         saveApiBtn.addEventListener('click', saveApi);
