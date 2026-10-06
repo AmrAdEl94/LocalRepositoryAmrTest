@@ -1,0 +1,26 @@
+{
+	"tokens": [
+		{
+			"name": "access_token_ElAraby",
+			"authUrl": "https://webexapis.com/v1/authorize",
+			"accessTokenUrl": "https://webexapis.com/v1/access_token",
+			"clientId": "C29b92b8022316aedfa460600a3f4270c24cb776c984addd30d7bc504bd3ac0d1",
+			"clientSecret": "55ad930c02c068fd11234fcb7a1ca3e78286ca8cf649afaf10fb0b8c3434e564",
+			"scope": "cjp:config_read cjp:config_write cjp:config cjp:user",
+			"callbackUrl": "https://amradel94.github.io/LocalRepositoryAmrTest/",
+			"grantType": "authorization_code",
+			"accessToken": ""
+		},
+		{
+			"name": "access_token_ConnectPS",
+			"authUrl": "https://webexapis.com/v1/authorize",
+			"accessTokenUrl": "https://webexapis.com/v1/access_token",
+			"clientId": "C76000bafb6439daa6ec3d2149337037f5aa17c708c12a1fade98dfa9e9ded41f",
+			"clientSecret": "0e5070ff43cfdf05521afc5a65afd97da4a4eaadf1dcb029630ba8035d73d497",
+			"scope": "cjp:config_read cjp:config_write cjp:config cjp:user",
+			"callbackUrl": "https://amradel94.github.io/LocalRepositoryAmrTest/",
+			"grantType": "authorization_code",
+			"accessToken": "NmY1NGFjZWMtY2FlNS00MDU3LTkzZjItMTJjYWU2ZWM2N2FmNmQ5OWQ1MjYtOTQ1_PF84_f98db768-273d-4357-8b80-438a86440bce"
+		}
+	]
+}

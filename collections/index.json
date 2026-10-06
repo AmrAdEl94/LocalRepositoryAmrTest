@@ -1,0 +1,15 @@
+{
+  "workspace": "https://www.postman.com/webexdev/webex-public-workspace",
+  "note": "Default collections for the Collection Manager. Downloaded from the Webex Public Workspace with example responses removed to keep the website fast.",
+  "collections": [
+    { "name": "Webex Admin", "file": "Webex Admin.postman_collection.json", "source": "https://www.postman.com/collections/46560387-f825adb1-7a62-434e-a9c3-509952cd3b73" },
+    { "name": "Webex Contact Center", "file": "Webex Contact Center.postman_collection.json", "source": "https://www.postman.com/collections/46560387-2d3506aa-a473-41cf-a638-c9dd22fb4948" },
+    { "name": "Webex Cloud Calling", "file": "Webex Cloud Calling.postman_collection.json", "source": "https://www.postman.com/collections/46560387-07753680-e684-4ec5-b4e0-58972cd75731" },
+    { "name": "Webex Meetings", "file": "Webex Meetings.postman_collection.json", "source": "https://www.postman.com/collections/46560387-9a95c130-f005-4963-ad39-01f65fd14e18" },
+    { "name": "Webex Messaging", "file": "Webex Messaging.postman_collection.json", "source": "https://www.postman.com/collections/46560387-f2747234-f76f-4227-8943-99bfc298c90d" },
+    { "name": "Webex Device", "file": "Webex Device.postman_collection.json", "source": "https://www.postman.com/collections/46560387-9765729d-69c1-423b-a937-5f117bceae9e" },
+    { "name": "Webex Wholesale", "file": "Webex Wholesale.postman_collection.json", "source": "https://www.postman.com/collections/46560387-59b6cc9b-6e86-4ca8-9403-26d9e4e048ae" },
+    { "name": "Webex Broadworks Calling", "file": "Webex Broadworks Calling.postman_collection.json", "source": "https://www.postman.com/collections/46560387-6945a2d4-df34-4fdf-8cb6-def70da8e137" },
+    { "name": "Webex for UCM", "file": "Webex for UCM.postman_collection.json", "source": "https://www.postman.com/collections/46560387-0cf736f5-8bbe-4ec6-8c61-96e8f9329487" }
+  ]
+}

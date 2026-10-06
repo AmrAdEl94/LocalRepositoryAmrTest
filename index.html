@@ -300,22 +300,235 @@
         tbody tr:hover {
             background-color: #f8fafd;
         }
-        #apiTable td:nth-child(4) {
-            min-width: 240px;
-            font-family: var(--font-mono);
-            font-size: 12.5px;
-            color: var(--text-muted);
-            word-break: break-all;
+        /* ---------- Collection tree ---------- */
+        .collection-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
         }
-        #apiTable td:nth-child(3) {
-            font-family: var(--font-mono);
+        .collection-sidebar {
+            position: sticky;
+            top: 88px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: calc(100vh - 120px);
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface-muted);
+        }
+        .collection-search {
+            width: 100%;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 13px;
+            background: var(--surface);
+        }
+        .collection-search:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--focus-ring);
+        }
+        .collection-notice {
             font-size: 12px;
-            font-weight: 600;
+            color: var(--warning);
+            background: var(--warning-soft);
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+        }
+        .collection-tree {
+            flex: 1;
+            min-height: 160px;
+            overflow: auto;
+        }
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 30px;
+            padding: 4px 6px 4px calc(6px + var(--depth, 0) * 16px);
+            border-radius: 6px;
+            font-size: 13px;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+        }
+        .tree-row:hover {
+            background: #e9eef6;
+        }
+        .tree-row.is-selected {
+            background: var(--primary-soft);
             color: var(--primary);
         }
-        #apiTable td:first-child,
-        #apiTable td:last-child {
+        .tree-collection {
+            font-weight: 600;
+            color: var(--text);
+        }
+        .tree-caret {
+            display: inline-flex;
+            width: 12px;
+            color: var(--text-subtle);
+            transition: transform 0.15s;
+        }
+        .tree-caret.is-open {
+            transform: rotate(90deg);
+        }
+        .tree-icon {
+            display: inline-flex;
+            color: var(--text-muted);
+        }
+        .tree-label {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
+        }
+        .tree-search-result .tree-label {
+            display: flex;
+            flex-direction: column;
+        }
+        .tree-search-result .tree-label > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tree-breadcrumb {
+            font-size: 11px;
+            color: var(--text-subtle);
+        }
+        .tree-count {
+            font-size: 11px;
+            color: var(--text-subtle);
+        }
+        .tree-actions {
+            display: none;
+            gap: 2px;
+        }
+        .tree-row:hover .tree-actions,
+        .tree-row.is-selected .tree-actions,
+        .tree-row:focus-within .tree-actions {
+            display: inline-flex;
+        }
+        .tree-row:hover .tree-count {
+            display: none;
+        }
+        .tree-action {
+            display: inline-flex;
+            padding: 4px;
+            border: none;
+            border-radius: 4px;
+            background: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .tree-action:hover {
+            background: var(--surface);
+            color: var(--text);
+        }
+        .tree-action.is-danger:hover {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+        .tree-empty {
+            padding: 12px 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .method-badge {
+            flex-shrink: 0;
+            width: 46px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .method-get { color: #15803d; }
+        .method-post { color: #b45309; }
+        .method-put { color: #1d4ed8; }
+        .method-patch { color: #7c3aed; }
+        .method-delete { color: #dc2626; }
+        .method-other { color: #64748b; }
+        .collection-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 56px 24px;
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .collection-main .api-editor {
+            border-top: none;
+            margin-top: 0;
+            padding-top: 0;
+        }
+        .editor-path {
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .save-status {
+            font-size: 13px;
+            color: var(--success);
+        }
+        .kv-enabled-cell {
+            text-align: center;
+        }
+        .kv-enabled {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+        .auth-inherit-panel {
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            border: 1px solid #c7d7fb;
+            border-radius: var(--radius-sm);
+            background: var(--primary-soft);
+            font-size: 13px;
+            color: #334155;
+        }
+        .auth-inherit-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .auth-inherit-controls label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .auth-inherit-controls select {
+            min-width: 200px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 13px;
+            background: var(--surface);
+        }
+        .auth-inherit-controls .btn {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        @media (max-width: 1100px) {
+            .collection-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .collection-sidebar {
+                position: static;
+                max-height: 420px;
+            }
         }
         .cell-muted {
             color: var(--text-muted);
@@ -413,10 +626,6 @@
             background-color: var(--surface-muted);
             border-color: #b8c2d3;
         }
-        #apiTable .btn-secondary {
-            padding: 5px 12px;
-            font-size: 13px;
-        }
         .btn-small {
             background-color: var(--surface);
             color: var(--danger);
@@ -440,6 +649,18 @@
         .token-table .btn-small:hover {
             background-color: var(--surface-muted);
             border-color: #b8c2d3;
+        }
+        .token-table .btn-small.btn-small-danger {
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+        .token-table .btn-small.btn-small-danger:hover {
+            background-color: var(--danger-soft);
+            border-color: #fca5a5;
+        }
+        .row-actions {
+            display: flex;
+            gap: 6px;
         }
         .btn-add-header {
             background-color: var(--surface);
@@ -1111,177 +1332,221 @@
                     <div class="card-header">
                         <div>
                             <h5 class="card-title">Collection Manager</h5>
-                            <p class="card-subtitle">Save, edit and send API requests.</p>
+                            <p class="card-subtitle">Postman collections from the <a href="https://www.postman.com/webexdev/webex-public-workspace" target="_blank" rel="noopener noreferrer">Webex Public Workspace</a> and your own. Import and export use the Postman collection v2.1 format.</p>
                         </div>
                         <div class="toolbar">
-                            <button id="newApiBtn" class="btn btn-primary">
+                            <input type="file" id="importCollectionInput" accept=".json,application/json" multiple hidden>
+                            <button type="button" id="restoreDefaultCollectionsBtn" class="btn btn-secondary" title="Add back any Webex workspace collection that was deleted">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                                Restore Defaults
+                            </button>
+                            <button type="button" id="importCollectionBtn" class="btn btn-secondary" title="Import Postman collection files (*.postman_collection.json)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                                Import
+                            </button>
+                            <button type="button" id="newCollectionBtn" class="btn btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                                Add API
+                                New Collection
                             </button>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="api-table-section table-wrap">
-                            <table id="apiTable">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Name</th>
-                                        <th>Method</th>
-                                        <th>URL</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
+                        <div class="collection-layout">
+                            <aside class="collection-sidebar">
+                                <input id="collectionSearchInput" class="collection-search" type="search" placeholder="Search requests by name, method or URL">
+                                <div id="collectionNotice" class="collection-notice hidden"></div>
+                                <div id="collectionTree" class="collection-tree" role="tree">
+                                    <div class="tree-empty">Loading collections…</div>
+                                </div>
+                            </aside>
 
-                        <div id="apiEditor" class="api-editor hidden">
-                            <h6>API Details</h6>
-                            <div class="form-grid">
-                                <div class="env-hint">Tip: use <code>{{variable}}</code> in the URL, parameters, headers, body or auth fields. Values come from the active environment when you send the request.</div>
-                                <div class="field-row">
-                                    <label for="apiName">Name</label>
-                                    <input id="apiName" type="text" placeholder="Example: Search Devices">
+                            <section class="collection-main">
+                                <div id="collectionEmptyState" class="collection-empty">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+                                    <p>Select a request from a collection to view, edit and send it.</p>
+                                    <p class="cell-muted">Use the <strong>+</strong> next to a collection or folder to add a new request.</p>
                                 </div>
-                                <div class="field-row">
-                                    <label for="apiMethod">Method</label>
-                                    <select id="apiMethod">
-                                        <option>GET</option>
-                                        <option>POST</option>
-                                        <option>PUT</option>
-                                        <option>PATCH</option>
-                                        <option>DELETE</option>
-                                    </select>
-                                </div>
-                                <div class="field-row url-row">
-                                    <label for="apiUrl">URL</label>
-                                    <input id="apiUrl" type="text" placeholder="https://api.example.com/v1/search">
-                                </div>
-                                <div class="headers-section">
-                                    <div class="headers-section-title">
-                                        <span>Query Parameters</span>
-                                    </div>
-                                    <table class="headers-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Key</th>
-                                                <th>Value</th>
-                                                <th style="width: 50px;">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="paramsTableBody">
-                                        </tbody>
-                                    </table>
-                                    <button type="button" class="btn-add-header" id="addParamBtn">+ Add Parameter</button>
-                                </div>
-                                <div class="headers-section">
-                                    <div class="headers-section-title">
-                                        <span>Headers & Authorization</span>
-                                    </div>
-                                    <div class="auth-type-selector">
-                                        <div class="auth-group">
-                                            <label><input type="radio" name="authType" value="none" checked> No Auth</label>
+
+                                <div id="apiEditor" class="api-editor hidden">
+                                    <div id="apiEditorPath" class="editor-path"></div>
+                                    <h6>Request Details</h6>
+                                    <div class="form-grid">
+                                        <div class="env-hint">Tip: use <code>{{variable}}</code> in the URL, parameters, headers, body or auth fields. Values come from the active environment first, then from the collection's own variables (such as <code>{{baseUrl}}</code>).</div>
+                                        <div class="field-row">
+                                            <label for="apiName">Name</label>
+                                            <input id="apiName" type="text" placeholder="Example: Search Devices">
                                         </div>
-                                        <div class="auth-group">
-                                            <label><input type="radio" name="authType" value="basic"> Basic Auth</label>
+                                        <div class="field-row">
+                                            <label for="apiMethod">Method</label>
+                                            <select id="apiMethod">
+                                                <option>GET</option>
+                                                <option>POST</option>
+                                                <option>PUT</option>
+                                                <option>PATCH</option>
+                                                <option>DELETE</option>
+                                            </select>
                                         </div>
-                                        <div class="auth-group">
-                                            <label><input type="radio" name="authType" value="bearer"> Bearer Token</label>
+                                        <div class="field-row url-row">
+                                            <label for="apiUrl">URL</label>
+                                            <input id="apiUrl" type="text" placeholder="{{baseUrl}}/people/:personId">
                                         </div>
-                                        <div class="auth-group">
-                                            <label><input type="radio" name="authType" value="oauth2"> Saved OAuth Token</label>
+                                        <div id="pathVariablesSection" class="headers-section hidden">
+                                            <div class="headers-section-title">
+                                                <span>Path Variables</span>
+                                            </div>
+                                            <table class="headers-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 30%;">Variable</th>
+                                                        <th>Value</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="pathVarsTableBody">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="headers-section">
+                                            <div class="headers-section-title">
+                                                <span>Query Parameters</span>
+                                            </div>
+                                            <table class="headers-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 44px;" title="Send this parameter">On</th>
+                                                        <th>Key</th>
+                                                        <th>Value</th>
+                                                        <th style="width: 50px;">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="paramsTableBody">
+                                                </tbody>
+                                            </table>
+                                            <button type="button" class="btn-add-header" id="addParamBtn">+ Add Parameter</button>
+                                        </div>
+                                        <div class="headers-section">
+                                            <div class="headers-section-title">
+                                                <span>Headers & Authorization</span>
+                                            </div>
+                                            <div class="auth-type-selector">
+                                                <div class="auth-group">
+                                                    <label><input type="radio" name="authType" value="inherit"> Inherit from Parent</label>
+                                                </div>
+                                                <div class="auth-group">
+                                                    <label><input type="radio" name="authType" value="none" checked> No Auth</label>
+                                                </div>
+                                                <div class="auth-group">
+                                                    <label><input type="radio" name="authType" value="basic"> Basic Auth</label>
+                                                </div>
+                                                <div class="auth-group">
+                                                    <label><input type="radio" name="authType" value="bearer"> Bearer Token</label>
+                                                </div>
+                                                <div class="auth-group">
+                                                    <label><input type="radio" name="authType" value="oauth2"> Saved OAuth Token</label>
+                                                </div>
+                                            </div>
+                                            <div id="authInheritPanel" class="auth-inherit-panel" style="display: none;">
+                                                <p id="authInheritText"></p>
+                                                <div id="authInheritControls" class="auth-inherit-controls">
+                                                    <label for="collectionAuthTokenSelect">Token for the whole collection</label>
+                                                    <select id="collectionAuthTokenSelect"></select>
+                                                    <button type="button" id="applyCollectionAuthBtn" class="btn btn-secondary">Apply to Collection</button>
+                                                </div>
+                                            </div>
+                                            <div id="apiTokenReferenceRow" style="display: none; margin-top: 12px;">
+                                                <label for="apiTokenReference">Saved Token (Tokens tab)</label>
+                                                <select id="apiTokenReference">
+                                                    <option value="">Select a saved token</option>
+                                                </select>
+                                            </div>
+                                            <div id="basicAuthSection" style="display: none;">
+                                                <div class="basic-auth-inputs">
+                                                    <input type="text" id="basicAuthUsername" placeholder="Username">
+                                                    <input type="password" id="basicAuthPassword" placeholder="Password">
+                                                </div>
+                                            </div>
+                                            <div id="bearerAuthSection" style="display: none;">
+                                                <div class="basic-auth-inputs">
+                                                    <input type="text" id="bearerTokenInput" placeholder="Bearer token">
+                                                    <button type="button" id="pasteBearerTokenBtn" class="btn btn-secondary" style="width:auto;">Paste from Clipboard</button>
+                                                </div>
+                                            </div>
+                                            <table class="headers-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 44px;" title="Send this header">On</th>
+                                                        <th>Key</th>
+                                                        <th>Value</th>
+                                                        <th style="width: 50px;">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="headersTableBody">
+                                                </tbody>
+                                            </table>
+                                            <button type="button" class="btn-add-header" id="addHeaderBtn">+ Add Header</button>
+                                        </div>
+                                        <div class="field-row">
+                                            <label for="apiBodyFormat">Body Type</label>
+                                            <select id="apiBodyFormat">
+                                                <option>None</option>
+                                                <option>JSON</option>
+                                                <option>XML</option>
+                                                <option>Text</option>
+                                                <option value="Preserved" hidden>Form data (kept as is)</option>
+                                            </select>
+                                        </div>
+                                        <div class="field-row body-row">
+                                            <label for="apiBody">Body</label>
+                                            <textarea id="apiBody" placeholder="Request body in JSON or XML"></textarea>
                                         </div>
                                     </div>
-                                    <div id="apiTokenReferenceRow" style="display: none; margin-top: 12px;">
-                                        <label for="apiTokenReference">Saved Token (Tokens tab)</label>
-                                        <select id="apiTokenReference">
-                                            <option value="">Select a saved token</option>
-                                        </select>
+                                    <div class="editor-actions">
+                                        <button id="saveApiBtn" class="btn btn-secondary">Save Request</button>
+                                        <button id="sendRequestBtn" class="btn btn-primary">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                            Send Request
+                                        </button>
+                                        <span id="saveStatus" class="save-status"></span>
+                                        <label class="cors-toggle">
+                                            <input type="checkbox" id="useCorsProxy">
+                                            <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer">CORS Proxy (for testing)</a>
+                                        </label>
                                     </div>
-                                    <div id="basicAuthSection" style="display: none;">
-                                        <div class="basic-auth-inputs">
-                                            <input type="text" id="basicAuthUsername" placeholder="Username">
-                                            <input type="password" id="basicAuthPassword" placeholder="Password">
+                                    <div id="requestPreview" class="request-preview-section hidden">
+                                        <h6>Request Preview</h6>
+                                        <div class="response-group">
+                                            <strong>Method:</strong> <span id="previewMethod"></span>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>URL:</strong> <span id="previewUrl"></span>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>Headers:</strong>
+                                            <pre id="previewHeaders" class="code-block"></pre>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>Body:</strong>
+                                            <pre id="previewBody" class="code-block"></pre>
                                         </div>
                                     </div>
-                                    <div id="bearerAuthSection" style="display: none;">
-                                        <div class="basic-auth-inputs">
-                                            <input type="text" id="bearerTokenInput" placeholder="Bearer token">
-                                            <button type="button" id="pasteBearerTokenBtn" class="btn btn-secondary" style="width:auto;">Paste from Clipboard</button>
+                                    <div id="responsePanel" class="response-section hidden">
+                                        <h6>Response</h6>
+                                        <div class="response-group">
+                                            <strong>URL:</strong> <span id="responseUrl"></span>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>Status:</strong> <span id="responseStatus"></span>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>Headers:</strong>
+                                            <pre id="responseHeaders" class="code-block"></pre>
+                                        </div>
+                                        <div class="response-group">
+                                            <strong>Body:</strong>
+                                            <pre id="responseBody" class="code-block"></pre>
                                         </div>
                                     </div>
-                                    <table class="headers-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Key</th>
-                                                <th>Value</th>
-                                                <th style="width: 50px;">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="headersTableBody">
-                                        </tbody>
-                                    </table>
-                                    <button type="button" class="btn-add-header" id="addHeaderBtn">+ Add Header</button>
                                 </div>
-                                <div class="field-row">
-                                    <label for="apiBodyFormat">Body Type</label>
-                                    <select id="apiBodyFormat">
-                                        <option>None</option>
-                                        <option>JSON</option>
-                                        <option>XML</option>
-                                    </select>
-                                </div>
-                                <div class="field-row body-row">
-                                    <label for="apiBody">Body</label>
-                                    <textarea id="apiBody" placeholder="Request body in JSON or XML"></textarea>
-                                </div>
-                            </div>
-                            <div class="editor-actions">
-                                <button id="saveApiBtn" class="btn btn-secondary">Save API</button>
-                                <button id="sendRequestBtn" class="btn btn-primary">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                                    Send Request
-                                </button>
-                                <label class="cors-toggle">
-                                    <input type="checkbox" id="useCorsProxy">
-                                    <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer">CORS Proxy (for testing)</a>
-                                </label>
-                            </div>
-                            <div id="requestPreview" class="request-preview-section hidden">
-                                <h6>Request Preview</h6>
-                                <div class="response-group">
-                                    <strong>Method:</strong> <span id="previewMethod"></span>
-                                </div>
-                                <div class="response-group">
-                                    <strong>URL:</strong> <span id="previewUrl"></span>
-                                </div>
-                                <div class="response-group">
-                                    <strong>Headers:</strong>
-                                    <pre id="previewHeaders" class="code-block"></pre>
-                                </div>
-                                <div class="response-group">
-                                    <strong>Body:</strong>
-                                    <pre id="previewBody" class="code-block"></pre>
-                                </div>
-                            </div>
-                            <div id="responsePanel" class="response-section hidden">
-                                <h6>Response</h6>
-                                <div class="response-group">
-                                    <strong>URL:</strong> <span id="responseUrl"></span>
-                                </div>
-                                <div class="response-group">
-                                    <strong>Status:</strong> <span id="responseStatus"></span>
-                                </div>
-                                <div class="response-group">
-                                    <strong>Headers:</strong>
-                                    <pre id="responseHeaders" class="code-block"></pre>
-                                </div>
-                                <div class="response-group">
-                                    <strong>Body:</strong>
-                                    <pre id="responseBody" class="code-block"></pre>
-                                </div>
-                            </div>
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -1529,7 +1794,23 @@
             });
         });
 
-        const apiTableBody = document.querySelector('#apiTable tbody');
+        const collectionTree = document.getElementById('collectionTree');
+        const collectionSearchInput = document.getElementById('collectionSearchInput');
+        const collectionNotice = document.getElementById('collectionNotice');
+        const collectionEmptyState = document.getElementById('collectionEmptyState');
+        const newCollectionBtn = document.getElementById('newCollectionBtn');
+        const importCollectionBtn = document.getElementById('importCollectionBtn');
+        const importCollectionInput = document.getElementById('importCollectionInput');
+        const restoreDefaultCollectionsBtn = document.getElementById('restoreDefaultCollectionsBtn');
+        const apiEditorPath = document.getElementById('apiEditorPath');
+        const pathVariablesSection = document.getElementById('pathVariablesSection');
+        const pathVarsTableBody = document.getElementById('pathVarsTableBody');
+        const authInheritPanel = document.getElementById('authInheritPanel');
+        const authInheritText = document.getElementById('authInheritText');
+        const authInheritControls = document.getElementById('authInheritControls');
+        const collectionAuthTokenSelect = document.getElementById('collectionAuthTokenSelect');
+        const applyCollectionAuthBtn = document.getElementById('applyCollectionAuthBtn');
+        const saveStatus = document.getElementById('saveStatus');
         const apiEditor = document.getElementById('apiEditor');
         const responsePanel = document.getElementById('responsePanel');
         const requestPreview = document.getElementById('requestPreview');
@@ -1551,7 +1832,6 @@
         const apiBodyInput = document.getElementById('apiBody');
         const saveApiBtn = document.getElementById('saveApiBtn');
         const sendRequestBtn = document.getElementById('sendRequestBtn');
-        const newApiBtn = document.getElementById('newApiBtn');
         const tokenTableBody = document.getElementById('tokenTableBody');
         const tokenNameInput = document.getElementById('tokenNameInput');
         const tokenValueInput = document.getElementById('tokenValueInput');
@@ -1625,7 +1905,11 @@
             grantType: 'authorization_code'
         };
 
-        const apiList = [
+        const POSTMAN_SCHEMA_V21 = 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json';
+        const DEFAULT_COLLECTIONS_MANIFEST = 'collections/index.json';
+
+        // The website's original starter requests. They are seeded once as the "My APIs" collection.
+        const legacyApiList = [
             {
                 name: 'Webex User API',
                 method: 'GET',
@@ -1655,9 +1939,14 @@
             }
         ];
 
-        let currentApiIndex = null;
-        let currentHeaders = {};
-        let currentParams = {};
+        let collectionList = [];
+        let currentCollection = null;
+        let currentRequestItem = null;
+        let editorPreservedBody = null;
+        let editorOriginalAuth = null;
+        let editorAuthChanged = false;
+        let treeNodeRegistry = new Map();
+        const expandedTreeNodes = new WeakSet();
         let currentAuthType = 'none';
         let tokenList = [];
         let currentTokenIndex = null;
@@ -1702,10 +1991,16 @@
                     <td>${escapeHtml(token.grantType || 'authorization_code')}</td>
                     <td>${escapeHtml(getStoredTokenValue(token))}</td>
                     <td>
-                        <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
+                        <div class="row-actions">
+                            <button type="button" class="btn-small" data-token-index="${index}">Edit</button>
+                            <button type="button" class="btn-small btn-small-danger" data-token-delete="${index}">Delete</button>
+                        </div>
                     </td>
                 `;
                 tokenTableBody.appendChild(row);
+            });
+            tokenTableBody.querySelectorAll('button[data-token-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteToken(Number(button.dataset.tokenDelete)));
             });
             tokenTableBody.querySelectorAll('button[data-token-index]').forEach(button => {
                 button.addEventListener('click', () => {
@@ -1723,6 +2018,20 @@
                 });
             });
             populateTokenReferenceSelect();
+        }
+
+        function deleteToken(index) {
+            const token = tokenList[index];
+            if (!token) return;
+            if (!confirm(`Delete saved token "${token.name || 'Untitled Token'}"?\n\nRequests that use this saved token will need another token selected.`)) return;
+            tokenList.splice(index, 1);
+            if (currentTokenIndex === index) {
+                resetTokenForm();
+            } else if (currentTokenIndex !== null && currentTokenIndex > index) {
+                currentTokenIndex--;
+            }
+            saveTokens();
+            renderTokenTable();
         }
 
         function populateTokenReferenceSelect() {
@@ -1763,7 +2072,7 @@
 
         const environmentVariableTypes = ['default', 'secret', 'any'];
 
-        function generateEnvironmentId() {
+        function generateUuid() {
             if (window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
             }
@@ -1801,7 +2110,7 @@
                 });
             });
             return {
-                id: (raw.id || '').toString() || generateEnvironmentId(),
+                id: (raw.id || '').toString() || generateUuid(),
                 name: (raw.name || '').toString().trim(),
                 variables,
                 color: raw.color === undefined ? null : raw.color
@@ -2073,7 +2382,7 @@
 
         function buildEnvironmentJson(environment) {
             return {
-                id: environment.id || generateEnvironmentId(),
+                id: environment.id || generateUuid(),
                 name: environment.name,
                 values: (environment.variables || []).map(variable => ({
                     key: variable.key,
@@ -2127,8 +2436,8 @@
 
         const tokenFileFields = ['name', 'authUrl', 'accessTokenUrl', 'clientId', 'clientSecret', 'scope', 'callbackUrl', 'grantType', 'accessToken'];
 
-        function downloadJsonFile(fileName, data) {
-            const blob = new Blob([JSON.stringify(data, null, '\t')], { type: 'application/json' });
+        function downloadJsonFile(fileName, data, indent = '\t') {
+            const blob = new Blob([JSON.stringify(data, null, indent)], { type: 'application/json' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = fileName;
@@ -2287,142 +2596,856 @@
             syncTokenDisplay(value);
         }
 
-        function renderApiTable() {
-            apiTableBody.innerHTML = '';
-            apiList.forEach((api, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${api.name || 'Untitled API'}</td>
-                    <td>${api.method}</td>
-                    <td>${api.url}</td>
-                    <td><button class="btn btn-secondary" data-index="${index}">Edit</button></td>
-                `;
-                apiTableBody.appendChild(row);
-            });
-
-            const editButtons = apiTableBody.querySelectorAll('button[data-index]');
-            editButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const index = Number(button.dataset.index);
-                    openApiEditor(index);
+        // ---------- Collection storage (IndexedDB: collections are too large for localStorage) ----------
+        const collectionStore = {
+            dbPromise: null,
+            open() {
+                if (!this.dbPromise) {
+                    this.dbPromise = new Promise((resolve, reject) => {
+                        if (!window.indexedDB) {
+                            reject(new Error('IndexedDB is not available in this browser.'));
+                            return;
+                        }
+                        const request = indexedDB.open('wxccSearchApi', 1);
+                        request.onupgradeneeded = () => request.result.createObjectStore('collections', { keyPath: 'id' });
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+                return this.dbPromise;
+            },
+            async run(mode, action) {
+                const db = await this.open();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction('collections', mode);
+                    const request = action(transaction.objectStore('collections'));
+                    transaction.oncomplete = () => resolve(request ? request.result : undefined);
+                    transaction.onerror = () => reject(transaction.error);
+                    transaction.onabort = () => reject(transaction.error);
                 });
+            },
+            getAll() {
+                return this.run('readonly', store => store.getAll());
+            },
+            put(record) {
+                return this.run('readwrite', store => store.put(record));
+            },
+            remove(id) {
+                return this.run('readwrite', store => store.delete(id));
+            }
+        };
+
+        function getCollectionId(collection) {
+            return collection.info._postman_id;
+        }
+
+        async function persistCollection(collection) {
+            try {
+                await collectionStore.put({ id: getCollectionId(collection), order: collectionList.indexOf(collection), collection });
+            } catch (error) {
+                console.warn('Could not save collection', error);
+                showCollectionNotice(`Could not save "${collection.info.name}" in this browser: ${error.message}`);
+            }
+        }
+
+        async function removeCollectionRecord(collection) {
+            try {
+                await collectionStore.remove(getCollectionId(collection));
+            } catch (error) {
+                console.warn('Could not remove collection', error);
+            }
+        }
+
+        function showCollectionNotice(message) {
+            collectionNotice.textContent = message;
+            collectionNotice.classList.toggle('hidden', !message);
+        }
+
+        function findCollectionIndexByName(name, excludeIndex = null) {
+            const key = normalizeName(name);
+            return collectionList.findIndex((collection, index) => index !== excludeIndex && normalizeName(collection.info.name) === key);
+        }
+
+        function ensureUniqueCollectionId(collection) {
+            while (collectionList.some(other => other !== collection && getCollectionId(other) === getCollectionId(collection))) {
+                collection.info._postman_id = generateUuid();
+            }
+        }
+
+        // ---------- Postman format (v2.1; v2.0 files are converted on import) ----------
+        function convertAuthToV21(auth) {
+            if (!auth || typeof auth !== 'object' || !auth.type) return auth;
+            const converted = { type: auth.type };
+            Object.keys(auth).forEach(key => {
+                if (key === 'type') return;
+                const params = auth[key];
+                if (params && typeof params === 'object' && !Array.isArray(params)) {
+                    converted[key] = Object.entries(params).map(([paramKey, value]) => ({ key: paramKey, value, type: typeof value === 'string' ? 'string' : 'any' }));
+                } else {
+                    converted[key] = params;
+                }
+            });
+            return converted;
+        }
+
+        function parsePostmanUrl(raw) {
+            const text = (raw || '').toString();
+            const url = { raw: text };
+            let rest = text;
+            const hashIndex = rest.indexOf('#');
+            if (hashIndex !== -1) {
+                url.hash = rest.slice(hashIndex + 1);
+                rest = rest.slice(0, hashIndex);
+            }
+            const queryIndex = rest.indexOf('?');
+            let queryText = '';
+            if (queryIndex !== -1) {
+                queryText = rest.slice(queryIndex + 1);
+                rest = rest.slice(0, queryIndex);
+            }
+            const protocolMatch = rest.match(/^([a-z][a-z0-9+.-]*):\/\//i);
+            if (protocolMatch) {
+                url.protocol = protocolMatch[1];
+                rest = rest.slice(protocolMatch[0].length);
+            }
+            const slashIndex = rest.indexOf('/');
+            let hostText = slashIndex === -1 ? rest : rest.slice(0, slashIndex);
+            const portMatch = hostText.match(/:(\d+)$/);
+            if (portMatch) {
+                url.port = portMatch[1];
+                hostText = hostText.slice(0, -portMatch[0].length);
+            }
+            if (hostText) url.host = hostText.includes('{{') ? [hostText] : hostText.split('.');
+            if (slashIndex !== -1) url.path = rest.slice(slashIndex + 1).split('/');
+            if (queryText) {
+                url.query = queryText.split('&').filter(Boolean).map(pair => {
+                    const separator = pair.indexOf('=');
+                    return separator === -1 ? { key: pair, value: null } : { key: pair.slice(0, separator), value: pair.slice(separator + 1) };
+                });
+            }
+            const variables = getPathVariableNames(text).map(name => ({ key: name, value: '' }));
+            if (variables.length) url.variable = variables;
+            return url;
+        }
+
+        function normalizeRequestV21(request) {
+            if (typeof request === 'string') {
+                return { method: 'GET', header: [], url: parsePostmanUrl(request) };
+            }
+            if (!request || typeof request !== 'object') return request;
+            if (typeof request.url === 'string') request.url = parsePostmanUrl(request.url);
+            if (request.auth) request.auth = convertAuthToV21(request.auth);
+            return request;
+        }
+
+        function normalizeItemsV21(items) {
+            (items || []).forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                if (item.auth) item.auth = convertAuthToV21(item.auth);
+                if (Array.isArray(item.item)) normalizeItemsV21(item.item);
+                if (item.request !== undefined) {
+                    item.request = normalizeRequestV21(item.request);
+                    (Array.isArray(item.response) ? item.response : []).forEach(response => {
+                        if (response && response.originalRequest) response.originalRequest = normalizeRequestV21(response.originalRequest);
+                    });
+                }
             });
         }
 
-        function openApiEditor(index) {
-            currentApiIndex = index;
-            const api = apiList[index];
-            apiNameInput.value = api.name;
-            apiMethodInput.value = api.method;
-            apiUrlInput.value = api.url;
-            // Parse params from JSON string to object
-            try {
-                currentParams = JSON.parse(api.params || '{}');
-            } catch (e) {
-                currentParams = {};
+        // Returns the collection in Postman v2.1 format, the same as "Webex Admin.postman_collection.json".
+        function normalizePostmanCollection(data) {
+            if (!data || typeof data !== 'object' || Array.isArray(data) || !data.info || !Array.isArray(data.item)) {
+                throw new Error('This is not a Postman collection. Expected "info" and "item" like Webex Admin.postman_collection.json.');
             }
-            // Parse headers from JSON string to object
-            try {
-                currentHeaders = JSON.parse(api.headers || '{}');
-            } catch (e) {
-                currentHeaders = {};
+            const schema = (data.info.schema || '').toString();
+            if (schema && !/collection\/v2\.[01]\./.test(schema)) {
+                throw new Error(`Unsupported Postman collection schema: ${schema}`);
             }
-            currentAuthType = api.authType || 'none';
-            if (apiTokenReference) apiTokenReference.value = api.tokenRef || '';
-            basicAuthUsername.value = api.basicAuthUsername || '';
-            basicAuthPassword.value = api.basicAuthPassword || '';
-            if (bearerTokenInput) bearerTokenInput.value = api.bearerToken || '';
-            if (oauth2TokenName) oauth2TokenName.value = api.oauth2TokenName || '';
-            if (oauth2CallbackUrl) oauth2CallbackUrl.value = api.oauth2CallbackUrl || '';
-            ensureOAuthCallbackUrl();
-            if (oauth2AuthUrl) oauth2AuthUrl.value = api.oauth2AuthUrl || '';
-            if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = api.oauth2AuthorizationCode || '';
-            if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = api.oauth2AccessTokenUrl || '';
-            if (oauth2ClientId) oauth2ClientId.value = api.oauth2ClientId || '';
-            if (oauth2ClientSecret) oauth2ClientSecret.value = api.oauth2ClientSecret || '';
-            if (oauth2Scope) oauth2Scope.value = api.oauth2Scope || '';
-            if (oauth2GrantType) oauth2GrantType.value = api.oauth2GrantType || 'authorization_code';
-            if (oauth2State) oauth2State.value = api.oauth2State || 'new';
-            if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = api.oauth2SendClientCredentialsInBody !== undefined ? api.oauth2SendClientCredentialsInBody : true;
-            if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = api.oauth2RefreshTokenUrl || '';
-            if (oauth2RefreshToken) oauth2RefreshToken.value = api.oauth2RefreshToken || '';
-            if (oauth2Username) oauth2Username.value = api.oauth2Username || '';
-            if (oauth2Password) oauth2Password.value = api.oauth2Password || '';
-            if (oauth2AccessToken) oauth2AccessToken.value = api.oauth2AccessToken || '';
-            renderParamsTable();
-            renderHeadersTable();
+            const name = (data.info.name || '').toString().trim();
+            if (!name) {
+                throw new Error('The collection has no "info.name".');
+            }
+            data.info.name = name;
+            data.info._postman_id = (data.info._postman_id || '').toString() || generateUuid();
+            data.info.schema = POSTMAN_SCHEMA_V21;
+            if (data.auth) data.auth = convertAuthToV21(data.auth);
+            normalizeItemsV21(data.item);
+            return data;
+        }
+
+        function getRequestRawUrl(request) {
+            if (!request) return '';
+            const url = request.url;
+            if (!url) return '';
+            if (typeof url === 'string') return url;
+            if (url.raw !== undefined && url.raw !== null) return url.raw.toString();
+            let raw = url.protocol ? `${url.protocol}://` : '';
+            raw += Array.isArray(url.host) ? url.host.join('.') : (url.host || '');
+            if (url.port) raw += `:${url.port}`;
+            if (Array.isArray(url.path) && url.path.length) raw += `/${url.path.join('/')}`;
+            return raw;
+        }
+
+        function stripQueryFromUrl(raw) {
+            const text = (raw || '').toString();
+            const end = text.search(/[?#]/);
+            return end === -1 ? text : text.slice(0, end);
+        }
+
+        function getPathVariableNames(urlText) {
+            const path = stripQueryFromUrl(urlText).replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');
+            const names = [];
+            path.split('/').forEach(segment => {
+                const match = segment.match(/^:([A-Za-z0-9_.-]+)$/);
+                if (match && !names.includes(match[1])) names.push(match[1]);
+            });
+            return names;
+        }
+
+        function countRequests(items) {
+            let count = 0;
+            (items || []).forEach(item => {
+                if (Array.isArray(item.item)) count += countRequests(item.item);
+                else if (item.request !== undefined) count++;
+            });
+            return count;
+        }
+
+        function itemContains(container, target) {
+            if (container === target) return true;
+            return Array.isArray(container.item) && container.item.some(child => itemContains(child, target));
+        }
+
+        // Ancestor folders of an item, outermost first; null when the item is not in these items.
+        function findItemTrail(items, target, trail = []) {
+            for (const item of items || []) {
+                if (item === target) return trail;
+                if (Array.isArray(item.item)) {
+                    const found = findItemTrail(item.item, target, trail.concat(item));
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function getRequestMethod(item) {
+            return ((item.request && item.request.method) || 'GET').toString().toUpperCase();
+        }
+
+        function buildLegacyCollection() {
+            const parseMap = text => {
+                try {
+                    return Object.entries(JSON.parse(text || '{}'));
+                } catch (error) {
+                    return [];
+                }
+            };
+            return normalizePostmanCollection({
+                info: { _postman_id: generateUuid(), name: 'My APIs', schema: POSTMAN_SCHEMA_V21 },
+                item: legacyApiList.map(api => {
+                    const query = parseMap(api.params).map(([key, value]) => ({ key, value: value === null ? '' : value.toString() }));
+                    const url = parsePostmanUrl(api.url + (query.length ? `?${query.map(entry => `${entry.key}=${entry.value}`).join('&')}` : ''));
+                    const request = {
+                        auth: { type: 'noauth' },
+                        method: api.method,
+                        header: parseMap(api.headers).map(([key, value]) => ({ key, value: value === null ? '' : value.toString() })),
+                        url
+                    };
+                    if (api.body && ['JSON', 'XML'].includes(api.bodyFormat)) {
+                        request.body = { mode: 'raw', raw: api.body, options: { raw: { language: api.bodyFormat.toLowerCase() } } };
+                    }
+                    return { name: api.name, request, response: [] };
+                })
+            });
+        }
+
+        // ---------- Adding, importing, exporting and deleting collections ----------
+        // Collection names are unique on the website (case-insensitive), the same rule as tokens and environments.
+        async function addCollections(candidates, askBeforeReplace) {
+            const notes = [];
+            const seenNames = new Set();
+            const uniqueCandidates = [];
+            candidates.forEach(collection => {
+                const key = normalizeName(collection.info.name);
+                if (seenNames.has(key)) {
+                    notes.push(`"${collection.info.name}" was selected more than once, the first one was kept.`);
+                    return;
+                }
+                seenNames.add(key);
+                uniqueCandidates.push(collection);
+            });
+
+            const conflicts = uniqueCandidates.filter(collection => findCollectionIndexByName(collection.info.name) !== -1);
+            let replaceExisting = false;
+            if (conflicts.length && askBeforeReplace) {
+                replaceExisting = confirm(`These collection names already exist on the website:\n- ${conflicts.map(collection => collection.info.name).join('\n- ')}\n\nOK = replace them (your changes to them will be lost)\nCancel = keep the existing collections and skip these`);
+            }
+
+            let added = 0;
+            let replaced = 0;
+            let skipped = 0;
+            for (const collection of uniqueCandidates) {
+                const existingIndex = findCollectionIndexByName(collection.info.name);
+                if (existingIndex !== -1 && !replaceExisting) {
+                    skipped++;
+                    continue;
+                }
+                if (existingIndex !== -1) {
+                    const existing = collectionList[existingIndex];
+                    if (existing === currentCollection) closeRequestEditor();
+                    collectionList[existingIndex] = collection;
+                    await removeCollectionRecord(existing);
+                    replaced++;
+                } else {
+                    collectionList.push(collection);
+                    added++;
+                }
+                ensureUniqueCollectionId(collection);
+                await persistCollection(collection);
+            }
+            renderCollectionTree();
+            return { added, replaced, skipped, notes };
+        }
+
+        async function fetchDefaultCollections() {
+            const candidates = [buildLegacyCollection()];
+            const errors = [];
+            let manifest = null;
+            try {
+                const response = await fetch(DEFAULT_COLLECTIONS_MANIFEST, { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                manifest = await response.json();
+            } catch (error) {
+                errors.push(`The Webex workspace collections could not be loaded (${error.message}). Open the website from GitHub Pages or a local web server, then click "Restore Defaults".`);
+            }
+            if (manifest) {
+                const results = await Promise.all((manifest.collections || []).map(async entry => {
+                    try {
+                        const response = await fetch(`collections/${encodeURIComponent(entry.file)}`, { cache: 'no-cache' });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return { collection: normalizePostmanCollection(await response.json()) };
+                    } catch (error) {
+                        return { error: `${entry.name || entry.file}: ${error.message}` };
+                    }
+                }));
+                results.forEach(result => {
+                    if (result.collection) candidates.push(result.collection);
+                    else errors.push(result.error);
+                });
+            }
+            return { candidates, errors, manifestLoaded: !!manifest };
+        }
+
+        async function initCollections() {
+            try {
+                const records = await collectionStore.getAll();
+                records.sort((first, second) => (first.order || 0) - (second.order || 0));
+                collectionList = records.map(record => record.collection);
+            } catch (error) {
+                collectionList = [];
+                showCollectionNotice(`Collections cannot be saved in this browser (${error.message}). Changes will be lost when the page is closed.`);
+            }
+            if (localStorage.getItem('collectionsInitialized') !== 'true') {
+                const { candidates, errors, manifestLoaded } = await fetchDefaultCollections();
+                await addCollections(candidates, false);
+                if (manifestLoaded) localStorage.setItem('collectionsInitialized', 'true');
+                if (errors.length) showCollectionNotice(errors.join(' '));
+            }
+            renderCollectionTree();
+        }
+
+        async function restoreDefaultCollections() {
+            restoreDefaultCollectionsBtn.disabled = true;
+            try {
+                const { candidates, errors, manifestLoaded } = await fetchDefaultCollections();
+                const result = await addCollections(candidates, true);
+                if (manifestLoaded) localStorage.setItem('collectionsInitialized', 'true');
+                alert([`Restore finished: ${result.added} added, ${result.replaced} replaced, ${result.skipped} kept as they are.`, ...result.notes, ...errors].join('\n'));
+            } finally {
+                restoreDefaultCollectionsBtn.disabled = false;
+            }
+        }
+
+        async function importCollectionFiles(files) {
+            const candidates = [];
+            const errors = [];
+            for (const file of files) {
+                try {
+                    candidates.push(normalizePostmanCollection(parseJsonText(await file.text())));
+                } catch (error) {
+                    errors.push(`${file.name}: ${error.message}`);
+                }
+            }
+            const result = await addCollections(candidates, true);
+            alert([`Import finished: ${result.added} added, ${result.replaced} replaced, ${result.skipped} skipped.`, ...result.notes, ...errors].join('\n'));
+        }
+
+        function exportCollection(collection) {
+            const data = JSON.parse(JSON.stringify(collection));
+            data.info.schema = POSTMAN_SCHEMA_V21;
+            const safeName = data.info.name.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'collection';
+            downloadJsonFile(`${safeName}.postman_collection.json`, data, 2);
+        }
+
+        async function createCollection() {
+            const name = (prompt('Name of the new collection:') || '').trim();
+            if (!name) return;
+            if (findCollectionIndexByName(name) !== -1) {
+                alert(`A collection named "${name}" already exists. Collection names must be unique.`);
+                return;
+            }
+            const collection = { info: { _postman_id: generateUuid(), name, schema: POSTMAN_SCHEMA_V21 }, item: [] };
+            collectionList.push(collection);
+            expandedTreeNodes.add(collection);
+            await persistCollection(collection);
+            renderCollectionTree();
+        }
+
+        async function addRequestTo(collection, container) {
+            const request = { name: 'New Request', request: { method: 'GET', header: [], url: { raw: '' } }, response: [] };
+            container.item.push(request);
+            expandedTreeNodes.add(container);
+            if (container !== collection) expandedTreeNodes.add(collection);
+            await persistCollection(collection);
+            openRequestEditor(collection, request);
+            apiNameInput.focus();
+            apiNameInput.select();
+        }
+
+        async function deleteTreeNode(node) {
+            if (node.kind === 'collection') {
+                const collection = node.collection;
+                const count = countRequests(collection.item);
+                if (!confirm(`Delete the collection "${collection.info.name}" and all of its ${count} request(s)?\n\nYou can export it first if you may need it again.`)) return;
+                if (collection === currentCollection) closeRequestEditor();
+                collectionList.splice(collectionList.indexOf(collection), 1);
+                await removeCollectionRecord(collection);
+            } else {
+                const isFolder = node.kind === 'folder';
+                const message = isFolder
+                    ? `Delete the folder "${node.item.name}" and its ${countRequests(node.item.item)} request(s)?`
+                    : `Delete the request "${node.item.name}"?`;
+                if (!confirm(message)) return;
+                if (currentRequestItem && itemContains(node.item, currentRequestItem)) closeRequestEditor();
+                node.parentItems.splice(node.parentItems.indexOf(node.item), 1);
+                await persistCollection(node.collection);
+            }
+            renderCollectionTree();
+        }
+
+        // ---------- Collection tree ----------
+        const treeIcons = {
+            caret: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+            collection: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/></svg>',
+            folder: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+            add: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>',
+            export: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
+            delete: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+        };
+        const treeActionTitles = { add: 'Add request', export: 'Export collection', delete: 'Delete' };
+
+        function treeActionButtons(actions) {
+            return `<span class="tree-actions">${actions.map(action => `<button type="button" class="tree-action${action === 'delete' ? ' is-danger' : ''}" data-tree-action="${action}" title="${treeActionTitles[action]}" aria-label="${treeActionTitles[action]}">${treeIcons[action]}</button>`).join('')}</span>`;
+        }
+
+        function registerTreeNode(node) {
+            const id = `n${treeNodeRegistry.size}`;
+            treeNodeRegistry.set(id, node);
+            return id;
+        }
+
+        function methodBadge(item) {
+            const method = getRequestMethod(item);
+            const known = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+            return `<span class="method-badge method-${known ? method.toLowerCase() : 'other'}">${escapeHtml(method)}</span>`;
+        }
+
+        function renderTreeItems(collection, items, depth, html) {
+            items.forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                if (Array.isArray(item.item)) {
+                    const id = registerTreeNode({ kind: 'folder', collection, item, parentItems: items });
+                    const expanded = expandedTreeNodes.has(item);
+                    const name = item.name || 'Folder';
+                    html.push(`<div class="tree-row tree-folder" data-node-id="${id}" style="--depth:${depth}" role="treeitem" aria-expanded="${expanded}">
+                        <span class="tree-caret${expanded ? ' is-open' : ''}">${treeIcons.caret}</span>
+                        <span class="tree-icon">${treeIcons.folder}</span>
+                        <span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                        <span class="tree-count">${countRequests(item.item)}</span>
+                        ${treeActionButtons(['add', 'delete'])}
+                    </div>`);
+                    if (expanded) renderTreeItems(collection, item.item, depth + 1, html);
+                } else if (item.request !== undefined) {
+                    const id = registerTreeNode({ kind: 'request', collection, item, parentItems: items });
+                    const name = item.name || 'Untitled Request';
+                    html.push(`<div class="tree-row tree-request${item === currentRequestItem ? ' is-selected' : ''}" data-node-id="${id}" style="--depth:${depth}" role="treeitem">
+                        ${methodBadge(item)}
+                        <span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                        ${treeActionButtons(['delete'])}
+                    </div>`);
+                }
+            });
+        }
+
+        function walkRequests(items, visit, trail = []) {
+            (items || []).forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                if (Array.isArray(item.item)) walkRequests(item.item, visit, trail.concat(item.name || 'Folder'));
+                else if (item.request !== undefined) visit(item, items, trail);
+            });
+        }
+
+        function renderCollectionTree() {
+            treeNodeRegistry = new Map();
+            const html = [];
+            const query = collectionSearchInput.value.trim().toLowerCase();
+            if (query) {
+                const limit = 200;
+                let total = 0;
+                collectionList.forEach(collection => walkRequests(collection.item, (item, parentItems, trail) => {
+                    const haystack = `${item.name || ''} ${getRequestMethod(item)} ${getRequestRawUrl(item.request)}`.toLowerCase();
+                    if (!haystack.includes(query)) return;
+                    total++;
+                    if (total > limit) return;
+                    const id = registerTreeNode({ kind: 'request', collection, item, parentItems });
+                    const name = item.name || 'Untitled Request';
+                    const location = [collection.info.name, ...trail].join(' › ');
+                    html.push(`<div class="tree-row tree-request tree-search-result${item === currentRequestItem ? ' is-selected' : ''}" data-node-id="${id}" style="--depth:0" role="treeitem">
+                        ${methodBadge(item)}
+                        <span class="tree-label"><span title="${escapeHtml(name)}">${escapeHtml(name)}</span><span class="tree-breadcrumb" title="${escapeHtml(location)}">${escapeHtml(location)}</span></span>
+                        ${treeActionButtons(['delete'])}
+                    </div>`);
+                }));
+                if (!total) html.push('<div class="tree-empty">No requests match your search.</div>');
+                if (total > limit) html.push(`<div class="tree-empty">Showing the first ${limit} of ${total} matches. Refine your search to see more.</div>`);
+            } else {
+                collectionList.forEach(collection => {
+                    const id = registerTreeNode({ kind: 'collection', collection, item: collection, parentItems: null });
+                    const expanded = expandedTreeNodes.has(collection);
+                    const name = collection.info.name;
+                    html.push(`<div class="tree-row tree-collection" data-node-id="${id}" style="--depth:0" role="treeitem" aria-expanded="${expanded}">
+                        <span class="tree-caret${expanded ? ' is-open' : ''}">${treeIcons.caret}</span>
+                        <span class="tree-icon">${treeIcons.collection}</span>
+                        <span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                        <span class="tree-count">${countRequests(collection.item)}</span>
+                        ${treeActionButtons(['add', 'export', 'delete'])}
+                    </div>`);
+                    if (expanded) renderTreeItems(collection, collection.item, 1, html);
+                });
+                if (!collectionList.length) html.push('<div class="tree-empty">No collections. Click "Import", "New Collection" or "Restore Defaults".</div>');
+            }
+            collectionTree.innerHTML = html.join('');
+        }
+
+        function handleTreeClick(event) {
+            const row = event.target.closest('.tree-row');
+            if (!row) return;
+            const node = treeNodeRegistry.get(row.dataset.nodeId);
+            if (!node) return;
+            const actionButton = event.target.closest('[data-tree-action]');
+            if (actionButton) {
+                const action = actionButton.dataset.treeAction;
+                if (action === 'delete') deleteTreeNode(node);
+                else if (action === 'export') exportCollection(node.collection);
+                else if (action === 'add') addRequestTo(node.collection, node.item);
+                return;
+            }
+            if (node.kind === 'request') {
+                openRequestEditor(node.collection, node.item);
+                return;
+            }
+            if (expandedTreeNodes.has(node.item)) expandedTreeNodes.delete(node.item);
+            else expandedTreeNodes.add(node.item);
+            renderCollectionTree();
+        }
+
+        // ---------- Request editor ----------
+        function ensureSelectOption(select, value, label = value) {
+            if (!value || Array.from(select.options).some(option => option.value === value)) return;
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            select.appendChild(option);
+        }
+
+        function addKeyValueRow(tbody, kind, entry = {}) {
+            const row = document.createElement('tr');
+            const label = kind === 'param' ? 'Parameter' : 'Header';
+            row.innerHTML = `
+                <td class="kv-enabled-cell"><input type="checkbox" class="kv-enabled" title="Send this ${label.toLowerCase()}"></td>
+                <td><input type="text" class="${kind}-key" placeholder="${label} name"></td>
+                <td><input type="text" class="${kind}-value" placeholder="${label} value"></td>
+                <td class="header-row-actions"><button type="button" class="btn-small delete-${kind}">Delete</button></td>
+            `;
+            row.querySelector('.kv-enabled').checked = entry.disabled !== true;
+            row.querySelector(`.${kind}-key`).value = entry.key === undefined || entry.key === null ? '' : entry.key;
+            row.querySelector(`.${kind}-value`).value = entry.value === undefined || entry.value === null ? '' : entry.value;
+            if (entry.description) row.title = typeof entry.description === 'string' ? entry.description : (entry.description.content || '');
+            row.storedEntry = entry;
+            row.querySelector(`.delete-${kind}`).addEventListener('click', () => row.remove());
+            tbody.appendChild(row);
+        }
+
+        function renderKeyValueRows(tbody, kind, entries) {
+            tbody.innerHTML = '';
+            (entries || []).forEach(entry => {
+                if (entry && typeof entry === 'object') addKeyValueRow(tbody, kind, entry);
+            });
+        }
+
+        function readKeyValueRows(tbody, kind) {
+            return Array.from(tbody.querySelectorAll('tr')).map(row => {
+                const key = row.querySelector(`.${kind}-key`).value.trim();
+                if (!key) return null;
+                const entry = { ...(row.storedEntry || {}), key, value: row.querySelector(`.${kind}-value`).value.trim() };
+                if (row.querySelector('.kv-enabled').checked) delete entry.disabled;
+                else entry.disabled = true;
+                return entry;
+            }).filter(Boolean);
+        }
+
+        function readPathVariables() {
+            return Array.from(pathVarsTableBody.querySelectorAll('tr')).map(row => ({
+                ...(row.storedEntry || {}),
+                key: row.dataset.key,
+                value: row.querySelector('.path-var-value').value.trim()
+            }));
+        }
+
+        function renderPathVariables(variables) {
+            const existing = new Map((variables || []).filter(variable => variable && variable.key).map(variable => [variable.key, variable]));
+            const names = getPathVariableNames(apiUrlInput.value);
+            pathVarsTableBody.innerHTML = '';
+            names.forEach(name => {
+                const entry = existing.get(name) || { key: name, value: '' };
+                const row = document.createElement('tr');
+                row.dataset.key = name;
+                row.storedEntry = entry;
+                row.innerHTML = `
+                    <td><code>:${escapeHtml(name)}</code></td>
+                    <td><input type="text" class="path-var-value" placeholder="Value for :${escapeHtml(name)}"></td>
+                `;
+                row.querySelector('.path-var-value').value = entry.value === undefined || entry.value === null ? '' : entry.value;
+                if (entry.description) row.title = typeof entry.description === 'string' ? entry.description : (entry.description.content || '');
+                pathVarsTableBody.appendChild(row);
+            });
+            pathVariablesSection.classList.toggle('hidden', !names.length);
+        }
+
+        function getAuthParam(auth, name) {
+            const params = auth && Array.isArray(auth[auth.type]) ? auth[auth.type] : [];
+            const param = params.find(entry => entry && entry.key === name);
+            return param && param.value !== undefined && param.value !== null ? param.value.toString() : '';
+        }
+
+        const EDITABLE_AUTH_TYPES = ['noauth', 'basic', 'bearer', 'oauth2'];
+
+        function isUnsupportedOriginalAuth() {
+            return !editorAuthChanged && !!editorOriginalAuth && !EDITABLE_AUTH_TYPES.includes(editorOriginalAuth.type);
+        }
+
+        function applyAuthToEditor(auth) {
+            basicAuthUsername.value = '';
+            basicAuthPassword.value = '';
+            if (bearerTokenInput) bearerTokenInput.value = '';
+            if (apiTokenReference) apiTokenReference.value = '';
+            if (!auth) {
+                currentAuthType = 'inherit';
+            } else if (auth.type === 'noauth') {
+                currentAuthType = 'none';
+            } else if (auth.type === 'basic') {
+                currentAuthType = 'basic';
+                basicAuthUsername.value = getAuthParam(auth, 'username');
+                basicAuthPassword.value = getAuthParam(auth, 'password');
+            } else if (auth.type === 'bearer') {
+                currentAuthType = 'bearer';
+                if (bearerTokenInput) bearerTokenInput.value = getAuthParam(auth, 'token');
+            } else if (auth.type === 'oauth2') {
+                currentAuthType = 'oauth2';
+                const tokenName = getAuthParam(auth, 'tokenName');
+                if (apiTokenReference && tokenName) {
+                    ensureSelectOption(apiTokenReference, tokenName, `${tokenName} (not saved on this website)`);
+                    apiTokenReference.value = tokenName;
+                }
+            } else {
+                currentAuthType = 'inherit';
+            }
             updateAuthTypeDisplay();
-            apiBodyFormatInput.value = api.bodyFormat || 'None';
-            apiBodyInput.value = api.body;
+        }
+
+        function buildAuthFromEditor() {
+            if (isUnsupportedOriginalAuth()) return editorOriginalAuth;
+            if (currentAuthType === 'inherit') return null;
+            if (currentAuthType === 'basic') {
+                return { type: 'basic', basic: [
+                    { key: 'username', value: basicAuthUsername.value.trim(), type: 'string' },
+                    { key: 'password', value: basicAuthPassword.value.trim(), type: 'string' }
+                ] };
+            }
+            if (currentAuthType === 'bearer') {
+                return { type: 'bearer', bearer: [{ key: 'token', value: bearerTokenInput ? bearerTokenInput.value.trim() : '', type: 'string' }] };
+            }
+            if (currentAuthType === 'oauth2') {
+                const params = editorOriginalAuth && editorOriginalAuth.type === 'oauth2' && Array.isArray(editorOriginalAuth.oauth2)
+                    ? editorOriginalAuth.oauth2.filter(entry => entry && entry.key !== 'tokenName')
+                    : [];
+                if (!params.some(entry => entry.key === 'addTokenTo')) params.push({ key: 'addTokenTo', value: 'header', type: 'string' });
+                const tokenName = apiTokenReference ? apiTokenReference.value.trim() : '';
+                if (tokenName) params.push({ key: 'tokenName', value: tokenName, type: 'string' });
+                return { type: 'oauth2', oauth2: params };
+            }
+            return { type: 'noauth' };
+        }
+
+        function getInheritedAuth(collection, item) {
+            if (!collection) return { auth: null, source: '' };
+            const trail = findItemTrail(collection.item, item) || [];
+            for (let index = trail.length - 1; index >= 0; index--) {
+                if (trail[index].auth) return { auth: trail[index].auth, source: trail[index].name || 'folder' };
+            }
+            return collection.auth ? { auth: collection.auth, source: collection.info.name } : { auth: null, source: '' };
+        }
+
+        function describeAuth(auth) {
+            if (!auth || auth.type === 'noauth') return 'no authorization';
+            if (auth.type === 'oauth2') {
+                const tokenName = getAuthParam(auth, 'tokenName');
+                if (tokenName) return `OAuth 2.0 with the saved token "${tokenName}"`;
+                return getAuthParam(auth, 'accessToken') ? 'OAuth 2.0 with a stored access token' : 'OAuth 2.0 without a saved token chosen';
+            }
+            if (auth.type === 'bearer') return 'a Bearer token';
+            if (auth.type === 'basic') return 'Basic auth';
+            return `"${auth.type}" authorization (not supported by this website)`;
+        }
+
+        function updateAuthInheritPanel() {
+            if (!authInheritPanel) return;
+            if (isUnsupportedOriginalAuth()) {
+                authInheritText.textContent = `This request uses "${editorOriginalAuth.type}" authorization, which this website cannot edit or send. It is kept unchanged when you save.`;
+                authInheritControls.style.display = 'none';
+                authInheritPanel.style.display = 'block';
+                return;
+            }
+            if (currentAuthType !== 'inherit' || !currentCollection) {
+                authInheritPanel.style.display = 'none';
+                return;
+            }
+            const inherited = getInheritedAuth(currentCollection, currentRequestItem);
+            authInheritText.textContent = inherited.auth
+                ? `Uses ${describeAuth(inherited.auth)} from "${inherited.source}".`
+                : 'No authorization is set on its folders or collection, so no Authorization header is sent. Choose a saved token for the whole collection below, or pick another option above.';
+            collectionAuthTokenSelect.innerHTML = '<option value="">No token (remove collection auth)</option>';
+            tokenList.forEach(token => ensureSelectOption(collectionAuthTokenSelect, token.name));
+            const collectionTokenName = currentCollection.auth && currentCollection.auth.type === 'oauth2' ? getAuthParam(currentCollection.auth, 'tokenName') : '';
+            if (collectionTokenName) {
+                ensureSelectOption(collectionAuthTokenSelect, collectionTokenName, `${collectionTokenName} (not saved on this website)`);
+                collectionAuthTokenSelect.value = collectionTokenName;
+            }
+            authInheritControls.style.display = 'flex';
+            authInheritPanel.style.display = 'block';
+        }
+
+        async function applyCollectionAuth() {
+            if (!currentCollection) return;
+            const tokenName = collectionAuthTokenSelect.value;
+            if (tokenName) {
+                const params = currentCollection.auth && currentCollection.auth.type === 'oauth2' && Array.isArray(currentCollection.auth.oauth2)
+                    ? currentCollection.auth.oauth2.filter(entry => entry && entry.key !== 'tokenName')
+                    : [];
+                if (!params.some(entry => entry.key === 'addTokenTo')) params.push({ key: 'addTokenTo', value: 'header', type: 'string' });
+                params.push({ key: 'tokenName', value: tokenName, type: 'string' });
+                currentCollection.auth = { type: 'oauth2', oauth2: params };
+            } else {
+                delete currentCollection.auth;
+            }
+            await persistCollection(currentCollection);
+            updateAuthInheritPanel();
+            showSaveStatus(tokenName ? `Collection now uses the saved token "${tokenName}".` : 'Collection authorization removed.');
+        }
+
+        function loadBodyIntoEditor(body) {
+            editorPreservedBody = null;
+            const preservedOption = apiBodyFormatInput.querySelector('option[value="Preserved"]');
+            preservedOption.hidden = true;
+            apiBodyInput.readOnly = false;
+            if (!body || !body.mode || (body.mode === 'raw' && !body.raw)) {
+                apiBodyFormatInput.value = 'None';
+                apiBodyInput.value = '';
+                return;
+            }
+            if (body.mode === 'raw') {
+                const language = body.options && body.options.raw && body.options.raw.language;
+                let format = 'Text';
+                if (language === 'json') format = 'JSON';
+                else if (language === 'xml') format = 'XML';
+                else if (!language && /^\s*[[{]/.test(body.raw)) format = 'JSON';
+                apiBodyFormatInput.value = format;
+                apiBodyInput.value = body.raw;
+                return;
+            }
+            editorPreservedBody = body;
+            preservedOption.hidden = false;
+            preservedOption.textContent = `${body.mode} (kept as is)`;
+            apiBodyFormatInput.value = 'Preserved';
+            const entries = Array.isArray(body[body.mode]) ? body[body.mode] : [];
+            apiBodyInput.value = entries.length
+                ? entries.map(entry => `${entry.disabled ? '# ' : ''}${entry.key}=${entry.type === 'file' ? '<file>' : (entry.value || '')}`).join('\n')
+                : `This request uses a "${body.mode}" body, which is kept unchanged.`;
+            apiBodyInput.readOnly = true;
+        }
+
+        function buildBodyFromEditor() {
+            const format = apiBodyFormatInput.value;
+            if (format === 'Preserved' && editorPreservedBody) return editorPreservedBody;
+            const text = apiBodyInput.value.trim();
+            if (format === 'None' || format === 'Preserved' || !text) return undefined;
+            const language = format === 'XML' ? 'xml' : (format === 'JSON' ? 'json' : 'text');
+            return { mode: 'raw', raw: text, options: { raw: { language } } };
+        }
+
+        function showSaveStatus(message) {
+            saveStatus.textContent = message;
+            clearTimeout(showSaveStatus.timer);
+            showSaveStatus.timer = setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 3000);
+        }
+
+        function openRequestEditor(collection, item) {
+            currentCollection = collection;
+            currentRequestItem = item;
+            const request = item.request && typeof item.request === 'object' ? item.request : {};
+            apiNameInput.value = item.name || '';
+            const method = (request.method || 'GET').toString().toUpperCase();
+            ensureSelectOption(apiMethodInput, method);
+            apiMethodInput.value = method;
+            const rawUrl = getRequestRawUrl(request);
+            apiUrlInput.value = stripQueryFromUrl(rawUrl);
+            const url = request.url && typeof request.url === 'object' ? request.url : null;
+            const query = url && Array.isArray(url.query) ? url.query : (parsePostmanUrl(rawUrl).query || []);
+            renderKeyValueRows(paramsTableBody, 'param', query);
+            renderPathVariables(url && Array.isArray(url.variable) ? url.variable : []);
+            renderKeyValueRows(headersTableBody, 'header', Array.isArray(request.header) ? request.header : []);
+            editorOriginalAuth = request.auth || null;
+            editorAuthChanged = false;
+            applyAuthToEditor(request.auth);
+            ensureOAuthCallbackUrl();
+            loadBodyIntoEditor(request.body);
+            const trail = findItemTrail(collection.item, item) || [];
+            apiEditorPath.textContent = [collection.info.name, ...trail.map(folder => folder.name || 'Folder')].join(' › ');
             apiEditor.classList.remove('hidden');
+            collectionEmptyState.classList.add('hidden');
             responsePanel.classList.add('hidden');
             requestPreview.classList.add('hidden');
             updateBodyState();
+            renderCollectionTree();
         }
 
-        function renderHeadersTable() {
-            headersTableBody.innerHTML = '';
-            Object.entries(currentHeaders).forEach(([key, value]) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><input type="text" class="header-key" value="${escapeHtml(key)}" placeholder="Header name"></td>
-                    <td><input type="text" class="header-value" value="${escapeHtml(value)}" placeholder="Header value"></td>
-                    <td class="header-row-actions"><button type="button" class="btn-small delete-header">Delete</button></td>
-                `;
-                headersTableBody.appendChild(row);
-                
-                row.querySelector('.delete-header').addEventListener('click', () => {
-                    delete currentHeaders[key];
-                    renderHeadersTable();
-                });
-                
-                row.querySelector('.header-key').addEventListener('change', (e) => {
-                    const oldKey = key;
-                    const newKey = e.target.value.trim();
-                    if (newKey && newKey !== oldKey) {
-                        currentHeaders[newKey] = currentHeaders[oldKey];
-                        delete currentHeaders[oldKey];
-                        renderHeadersTable();
-                    }
-                });
-                
-                row.querySelector('.header-value').addEventListener('change', (e) => {
-                    currentHeaders[key] = e.target.value;
-                });
-            });
-        }
-
-        function renderParamsTable() {
-            paramsTableBody.innerHTML = '';
-            Object.entries(currentParams).forEach(([key, value]) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><input type="text" class="param-key" value="${escapeHtml(key)}" placeholder="Parameter name"></td>
-                    <td><input type="text" class="param-value" value="${escapeHtml(value)}" placeholder="Parameter value"></td>
-                    <td class="header-row-actions"><button type="button" class="btn-small delete-param">Delete</button></td>
-                `;
-                paramsTableBody.appendChild(row);
-                
-                row.querySelector('.delete-param').addEventListener('click', () => {
-                    delete currentParams[key];
-                    renderParamsTable();
-                });
-                
-                row.querySelector('.param-key').addEventListener('change', (e) => {
-                    const oldKey = key;
-                    const newKey = e.target.value.trim();
-                    if (newKey && newKey !== oldKey) {
-                        currentParams[newKey] = currentParams[oldKey];
-                        delete currentParams[oldKey];
-                        renderParamsTable();
-                    }
-                });
-                
-                row.querySelector('.param-value').addEventListener('change', (e) => {
-                    currentParams[key] = e.target.value;
-                });
-            });
+        function closeRequestEditor() {
+            currentCollection = null;
+            currentRequestItem = null;
+            apiEditor.classList.add('hidden');
+            collectionEmptyState.classList.remove('hidden');
         }
 
         function updateAuthTypeDisplay() {
@@ -2450,6 +3473,7 @@
             if (oauth2AuthorizationCodeRow) {
                 oauth2AuthorizationCodeRow.style.display = oauth2GrantType && oauth2GrantType.value === 'authorization_code' ? 'block' : 'none';
             }
+            updateAuthInheritPanel();
         }
 
         function getDefaultCallbackUrl() {
@@ -3142,8 +4166,9 @@
             }
         }
 
+        // Accepts an object or an array of [key, value] pairs (Postman allows repeated keys).
         function buildQueryString(params) {
-            const entries = Object.entries(params).filter(([_, value]) => value !== undefined && value !== '');
+            const entries = (Array.isArray(params) ? params : Object.entries(params)).filter(([_, value]) => value !== undefined && value !== null && value !== '');
             if (!entries.length) return '';
             return '?' + entries.map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value)).join('&');
         }
@@ -3166,6 +4191,10 @@
         function updateBodyState() {
             const method = apiMethodInput.value;
             const bodyType = apiBodyFormatInput.value;
+            if (bodyType !== 'Preserved' && apiBodyInput.readOnly) {
+                apiBodyInput.readOnly = false;
+                apiBodyInput.value = '';
+            }
             if (method === 'GET' || method === 'DELETE' || bodyType === 'None') {
                 apiBodyInput.disabled = true;
                 if (bodyType === 'None') {
@@ -3175,160 +4204,95 @@
                 }
             } else {
                 apiBodyInput.disabled = false;
-                apiBodyInput.placeholder = 'Request body in JSON or XML';
+                apiBodyInput.placeholder = 'Request body in JSON, XML or text';
             }
         }
 
-        function saveApi() {
-            // Update current params from table inputs
-            const paramInputs = paramsTableBody.querySelectorAll('tr');
-            currentParams = {};
-            paramInputs.forEach(row => {
-                const keyInput = row.querySelector('.param-key');
-                const valueInput = row.querySelector('.param-value');
-                if (keyInput && valueInput) {
-                    const key = keyInput.value.trim();
-                    const value = valueInput.value.trim();
-                    if (key) {
-                        currentParams[key] = value;
-                    }
-                }
-            });
+        async function saveApi() {
+            if (!currentRequestItem || !currentCollection) return;
+            const item = currentRequestItem;
+            const previous = item.request && typeof item.request === 'object' ? item.request : {};
+            const { auth: previousAuth, method: previousMethod, header: previousHeader, body: previousBody, url: previousUrl, description, ...otherRequestFields } = previous;
 
-            // Update current headers from table inputs
-            const headerInputs = headersTableBody.querySelectorAll('tr');
-            currentHeaders = {};
-            headerInputs.forEach(row => {
-                const keyInput = row.querySelector('.header-key');
-                const valueInput = row.querySelector('.header-value');
-                if (keyInput && valueInput) {
-                    const key = keyInput.value.trim();
-                    const value = valueInput.value.trim();
-                    if (key) {
-                        currentHeaders[key] = value;
-                    }
-                }
-            });
+            const query = readKeyValueRows(paramsTableBody, 'param');
+            const enabledQuery = query.filter(entry => !entry.disabled);
+            const baseUrl = apiUrlInput.value.trim();
+            const raw = baseUrl + (enabledQuery.length
+                ? `?${enabledQuery.map(entry => (entry.value === null || entry.value === undefined ? entry.key : `${entry.key}=${entry.value}`)).join('&')}`
+                : '');
+            const url = parsePostmanUrl(raw);
+            if (query.length) url.query = query;
+            else delete url.query;
+            const pathVariables = readPathVariables();
+            if (pathVariables.length) url.variable = pathVariables;
+            else delete url.variable;
 
-            const api = {
-                name: apiNameInput.value.trim() || 'Untitled API',
-                method: apiMethodInput.value,
-                url: apiUrlInput.value.trim(),
-                params: JSON.stringify(currentParams),
-                headers: JSON.stringify(currentHeaders),
-                authType: currentAuthType,
-                basicAuthUsername: basicAuthUsername.value.trim(),
-                basicAuthPassword: basicAuthPassword.value.trim(),
-                bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
-                oauth2TokenName: oauth2TokenName ? oauth2TokenName.value.trim() : '',
-                oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
-                oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
-                oauth2AccessTokenUrl: oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '',
-                oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
-                oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
-                oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
-                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'authorization_code',
-                oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
-                oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
-                oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
-                oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
-                oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
-                oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
-                tokenRef: apiTokenReference ? apiTokenReference.value.trim() : '',
-                bodyFormat: apiBodyFormatInput.value,
-                body: apiBodyInput.value.trim()
-            };
-            if (currentApiIndex === null) {
-                apiList.push(api);
-                currentApiIndex = apiList.length - 1;
+            const request = {};
+            const auth = buildAuthFromEditor();
+            if (auth) request.auth = auth;
+            request.method = apiMethodInput.value;
+            request.header = readKeyValueRows(headersTableBody, 'header');
+            const body = buildBodyFromEditor();
+            if (body) request.body = body;
+            request.url = url;
+            if (description !== undefined) request.description = description;
+            Object.assign(request, otherRequestFields);
+
+            item.name = apiNameInput.value.trim() || 'Untitled Request';
+            item.request = request;
+            await persistCollection(currentCollection);
+            openRequestEditor(currentCollection, item);
+            showSaveStatus('Saved');
+        }
+
+        function resolveRequestVars(value) {
+            const text = resolveEnvVars(value);
+            const variables = currentCollection && Array.isArray(currentCollection.variable) ? currentCollection.variable : [];
+            if (!variables.length || !text.includes('{{')) return text;
+            return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name) => {
+                const variable = variables.find(entry => entry && entry.key === name && entry.disabled !== true);
+                return variable && variable.value !== undefined && variable.value !== null ? variable.value.toString() : match;
+            });
+        }
+
+        function escapeRegExp(text) {
+            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Adds the Authorization header for the editor's auth choice (or the inherited one).
+        // Returns false when the request must not be sent.
+        async function applyAuthorization(headersMap) {
+            if (isUnsupportedOriginalAuth()) return true;
+            let descriptor;
+            if (currentAuthType === 'inherit') {
+                const { auth } = getInheritedAuth(currentCollection, currentRequestItem);
+                descriptor = { fromEditor: false, type: 'none' };
+                if (auth && auth.type === 'basic') descriptor = { type: 'basic', username: getAuthParam(auth, 'username'), password: getAuthParam(auth, 'password') };
+                else if (auth && auth.type === 'bearer') descriptor = { type: 'bearer', token: getAuthParam(auth, 'token') };
+                else if (auth && auth.type === 'oauth2') descriptor = { type: 'oauth2', tokenRef: getAuthParam(auth, 'tokenName'), accessToken: getAuthParam(auth, 'accessToken'), fromEditor: false };
             } else {
-                apiList[currentApiIndex] = api;
+                descriptor = {
+                    fromEditor: true,
+                    type: currentAuthType,
+                    username: basicAuthUsername.value.trim(),
+                    password: basicAuthPassword.value.trim(),
+                    token: bearerTokenInput ? bearerTokenInput.value.trim() : '',
+                    tokenRef: apiTokenReference ? apiTokenReference.value.trim() : ''
+                };
             }
-            renderApiTable();
-            openApiEditor(currentApiIndex);
-        }
 
-        async function sendRequest() {
-            // Update current params from table inputs
-            const paramInputs = paramsTableBody.querySelectorAll('tr');
-            currentParams = {};
-            paramInputs.forEach(row => {
-                const keyInput = row.querySelector('.param-key');
-                const valueInput = row.querySelector('.param-value');
-                if (keyInput && valueInput) {
-                    const key = keyInput.value.trim();
-                    const value = valueInput.value.trim();
-                    if (key) {
-                        currentParams[key] = value;
-                    }
-                }
-            });
-
-            // Update current headers from table inputs
-            const headerInputs = headersTableBody.querySelectorAll('tr');
-            currentHeaders = {};
-            headerInputs.forEach(row => {
-                const keyInput = row.querySelector('.header-key');
-                const valueInput = row.querySelector('.header-value');
-                if (keyInput && valueInput) {
-                    const key = keyInput.value.trim();
-                    const value = valueInput.value.trim();
-                    if (key) {
-                        currentHeaders[key] = value;
-                    }
-                }
-            });
-
-            const api = {
-                name: apiNameInput.value.trim() || 'Untitled API',
-                method: apiMethodInput.value,
-                url: apiUrlInput.value.trim(),
-                params: JSON.stringify(currentParams),
-                headers: JSON.stringify(currentHeaders),
-                authType: currentAuthType,
-                basicAuthUsername: basicAuthUsername.value.trim(),
-                basicAuthPassword: basicAuthPassword.value.trim(),
-                bearerToken: bearerTokenInput ? bearerTokenInput.value.trim() : '',
-                oauth2TokenName: oauth2TokenName ? oauth2TokenName.value.trim() : '',
-                oauth2CallbackUrl: oauth2CallbackUrl ? oauth2CallbackUrl.value.trim() : '',
-                oauth2AuthUrl: oauth2AuthUrl ? oauth2AuthUrl.value.trim() : '',
-                oauth2AccessTokenUrl: oauth2AccessTokenUrl ? oauth2AccessTokenUrl.value.trim() : '',
-                oauth2ClientId: oauth2ClientId ? oauth2ClientId.value.trim() : '',
-                oauth2ClientSecret: oauth2ClientSecret ? oauth2ClientSecret.value.trim() : '',
-                oauth2Scope: oauth2Scope ? oauth2Scope.value.trim() : '',
-                oauth2GrantType: oauth2GrantType ? oauth2GrantType.value : 'authorization_code',
-                oauth2State: oauth2State ? oauth2State.value.trim() : 'new',
-                oauth2SendClientCredentialsInBody: oauth2SendClientCredentialsInBody ? oauth2SendClientCredentialsInBody.checked : true,
-                oauth2RefreshTokenUrl: oauth2RefreshTokenUrl ? oauth2RefreshTokenUrl.value.trim() : '',
-                oauth2RefreshToken: oauth2RefreshToken ? oauth2RefreshToken.value.trim() : '',
-                oauth2Username: oauth2Username ? oauth2Username.value.trim() : '',
-                oauth2Password: oauth2Password ? oauth2Password.value.trim() : '',
-                oauth2AccessToken: oauth2AccessToken ? oauth2AccessToken.value.trim() : '',
-                tokenRef: apiTokenReference ? apiTokenReference.value.trim() : '',
-                bodyFormat: apiBodyFormatInput.value,
-                body: apiBodyInput.value.trim()
-            };
-
-            if (!api.url) {
-                alert('Enter a valid request URL.');
-                return;
-            }
-            clearResponse();
-
-            const paramsMap = resolveEnvMap(JSON.parse(api.params || '{}'));
-            const headersMap = resolveEnvMap(JSON.parse(api.headers || '{}'));
-
-            const selectedTokenReference = (apiTokenReference ? apiTokenReference.value.trim() : '') || api.tokenRef || '';
-            const selectedToken = tokenList.find(token => (token.name || '').trim() === selectedTokenReference.trim());
-            if (currentAuthType === 'oauth2') {
-                if (selectedTokenReference) {
+            if (descriptor.type === 'oauth2') {
+                if (descriptor.tokenRef) {
+                    const selectedToken = tokenList.find(token => (token.name || '').trim() === descriptor.tokenRef);
                     const tokenValue = getStoredTokenValue(selectedToken);
                     if (!selectedToken || !tokenValue) {
-                        alert('The selected saved OAuth token does not have a value to send.');
-                        return;
+                        alert(`The saved OAuth token "${descriptor.tokenRef}" does not have a value to send.`);
+                        return false;
                     }
-                    headersMap['Authorization'] = `Bearer ${resolveEnvVars(tokenValue)}`;
-                } else {
+                    headersMap['Authorization'] = `Bearer ${resolveRequestVars(tokenValue)}`;
+                } else if (descriptor.accessToken) {
+                    headersMap['Authorization'] = `Bearer ${resolveRequestVars(descriptor.accessToken)}`;
+                } else if (descriptor.fromEditor) {
                     const directToken = oauth2AccessToken ? oauth2AccessToken.value.trim() : '';
                     if (directToken) {
                         headersMap['Authorization'] = `Bearer ${directToken}`;
@@ -3340,76 +4304,118 @@
                             }
                         } catch (error) {
                             alert(error.message);
-                            return;
+                            return false;
                         }
                     }
                 }
-            } else if (selectedToken) {
-                if (selectedToken.type === 'Basic') {
-                    headersMap['Authorization'] = `Basic ${selectedToken.value}`;
-                } else {
-                    headersMap['Authorization'] = `Bearer ${selectedToken.value}`;
-                }
-            } else if (currentAuthType === 'basic') {
-                const username = resolveEnvVars(basicAuthUsername.value.trim());
-                const password = resolveEnvVars(basicAuthPassword.value.trim());
+            } else if (descriptor.type === 'basic') {
+                const username = resolveRequestVars(descriptor.username);
+                const password = resolveRequestVars(descriptor.password);
                 if (username || password) {
-                    const credentials = btoa(`${username}:${password}`);
-                    headersMap['Authorization'] = `Basic ${credentials}`;
+                    headersMap['Authorization'] = `Basic ${btoa(`${username}:${password}`)}`;
                 }
-            } else if (currentAuthType === 'bearer') {
-                if (bearerTokenInput) {
-                    const token = resolveEnvVars(bearerTokenInput.value.trim());
-                    if (token) {
-                        headersMap['Authorization'] = `Bearer ${token}`;
-                    }
+            } else if (descriptor.type === 'bearer') {
+                const token = resolveRequestVars(descriptor.token);
+                if (token) {
+                    headersMap['Authorization'] = `Bearer ${token}`;
                 }
             }
+            return true;
+        }
 
-            if (pasteBearerTokenBtn) {
-                pasteBearerTokenBtn.addEventListener('click', async () => {
-                    if (navigator.clipboard) {
-                        try {
-                            const text = await navigator.clipboard.readText();
-                            bearerTokenInput.value = text;
-                        } catch (err) {
-                            alert('Failed to read clipboard: ' + err.message);
-                        }
-                    } else {
-                        alert('Clipboard API not supported.');
-                    }
-                });
+        function buildPreservedBody(body) {
+            const entries = (Array.isArray(body[body.mode]) ? body[body.mode] : []).filter(entry => entry && entry.key && !entry.disabled);
+            if (body.mode === 'urlencoded') {
+                const params = new URLSearchParams();
+                entries.forEach(entry => params.append(resolveRequestVars(entry.key), resolveRequestVars(entry.value || '')));
+                return { body: params, preview: params.toString(), contentType: 'application/x-www-form-urlencoded' };
             }
-            
-            let requestUrl = resolveEnvVars(api.url);
-            const query = buildQueryString(paramsMap);
+            if (body.mode === 'formdata') {
+                const formData = new FormData();
+                const preview = [];
+                entries.forEach(entry => {
+                    if (entry.type === 'file') {
+                        preview.push(`${entry.key}=<file not sent: files cannot be attached from a saved collection>`);
+                        return;
+                    }
+                    const value = resolveRequestVars(entry.value || '');
+                    formData.append(resolveRequestVars(entry.key), value);
+                    preview.push(`${entry.key}=${value}`);
+                });
+                return { body: formData, preview: preview.join('\n') };
+            }
+            return null;
+        }
+
+        async function sendRequest() {
+            if (!currentRequestItem) return;
+            const method = apiMethodInput.value;
+            const rawUrl = apiUrlInput.value.trim();
+            if (!rawUrl) {
+                alert('Enter a valid request URL.');
+                return;
+            }
+            clearResponse();
+
+            const headersMap = {};
+            readKeyValueRows(headersTableBody, 'header')
+                .filter(entry => !entry.disabled)
+                .forEach(entry => {
+                    headersMap[resolveRequestVars(entry.key)] = resolveRequestVars(entry.value);
+                });
+            if (!(await applyAuthorization(headersMap))) return;
+
+            let requestUrl = resolveRequestVars(rawUrl);
+            readPathVariables().forEach(variable => {
+                const value = resolveRequestVars(variable.value);
+                if (value) {
+                    requestUrl = requestUrl.replace(new RegExp(`/:${escapeRegExp(variable.key)}(?=[/?#]|$)`, 'g'), `/${value}`);
+                }
+            });
+            const queryPairs = readKeyValueRows(paramsTableBody, 'param')
+                .filter(entry => !entry.disabled)
+                .map(entry => [resolveRequestVars(entry.key), resolveRequestVars(entry.value)]);
+            const query = buildQueryString(queryPairs);
             if (query) {
                 requestUrl += requestUrl.includes('?') ? '&' + query.slice(1) : query;
             }
 
             const requestOptions = {
-                method: api.method,
+                method,
                 headers: { ...headersMap }
             };
-
-            if (api.method !== 'GET' && api.method !== 'DELETE' && api.bodyFormat !== 'None') {
-                if (api.body) {
-                    if (api.bodyFormat === 'XML') {
-                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/xml';
-                        requestOptions.body = resolveEnvVars(api.body);
-                    } else if (api.bodyFormat === 'JSON') {
-                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/json';
-                        requestOptions.body = resolveEnvVars(api.body);
+            let bodyPreview = '';
+            const bodyFormat = apiBodyFormatInput.value;
+            if (method !== 'GET' && method !== 'DELETE' && bodyFormat !== 'None') {
+                if (bodyFormat === 'Preserved' && editorPreservedBody) {
+                    const preserved = buildPreservedBody(editorPreservedBody);
+                    if (preserved) {
+                        requestOptions.body = preserved.body;
+                        bodyPreview = preserved.preview;
+                        if (preserved.contentType) requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || preserved.contentType;
+                    }
+                } else {
+                    const bodyText = apiBodyInput.value.trim();
+                    if (bodyText) {
+                        const contentTypes = { XML: 'application/xml', JSON: 'application/json', Text: 'text/plain' };
+                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || contentTypes[bodyFormat] || 'text/plain';
+                        requestOptions.body = resolveRequestVars(bodyText);
+                        bodyPreview = requestOptions.body;
                     }
                 }
             }
 
             // Populate and show request preview
-            previewMethod.textContent = api.method;
+            previewMethod.textContent = method;
             previewUrl.textContent = requestUrl;
             previewHeaders.textContent = formatHeadersObject(requestOptions.headers);
-            previewBody.textContent = requestOptions.body || '<empty body>';
+            previewBody.textContent = bodyPreview || '<empty body>';
             requestPreview.classList.remove('hidden');
+
+            if (!/^https?:\/\//i.test(requestUrl)) {
+                alert(`The URL resolved to "${requestUrl}", which is not a full http(s) address.\n\nThe Webex collections use {{baseUrl}}. Activate an environment that defines baseUrl (for example https://webexapis.com/v1) in the top bar.`);
+                return;
+            }
 
             // Apply CORS proxy if enabled
             let finalUrl = requestUrl;
@@ -3448,57 +4454,47 @@
             }
         }
 
-        newApiBtn.addEventListener('click', () => {
-            currentApiIndex = null;
-            apiNameInput.value = '';
-            apiMethodInput.value = 'GET';
-            apiUrlInput.value = '';
-            currentParams = {};
-            currentHeaders = {};
-            currentAuthType = 'none';
-            basicAuthUsername.value = '';
-            basicAuthPassword.value = '';
-            if (bearerTokenInput) bearerTokenInput.value = '';
-            if (oauth2TokenName) oauth2TokenName.value = '';
-            if (oauth2CallbackUrl) oauth2CallbackUrl.value = '';
-            ensureOAuthCallbackUrl();
-            if (oauth2AuthUrl) oauth2AuthUrl.value = '';
-            if (oauth2AuthorizationCode) oauth2AuthorizationCode.value = '';
-            if (oauth2AccessTokenUrl) oauth2AccessTokenUrl.value = '';
-            if (oauth2ClientId) oauth2ClientId.value = '';
-            if (oauth2ClientSecret) oauth2ClientSecret.value = '';
-            if (oauth2Scope) oauth2Scope.value = '';
-            if (oauth2GrantType) oauth2GrantType.value = 'authorization_code';
-            if (oauth2State) oauth2State.value = 'new';
-            if (oauth2SendClientCredentialsInBody) oauth2SendClientCredentialsInBody.checked = true;
-            if (oauth2RefreshTokenUrl) oauth2RefreshTokenUrl.value = '';
-            if (oauth2RefreshToken) oauth2RefreshToken.value = '';
-            if (oauth2Username) oauth2Username.value = '';
-            if (oauth2Password) oauth2Password.value = '';
-            if (oauth2AccessToken) oauth2AccessToken.value = '';
-            renderParamsTable();
-            renderHeadersTable();
-            updateAuthTypeDisplay();
-            apiBodyFormatInput.value = 'None';
-            apiBodyInput.value = '';
-            apiEditor.classList.remove('hidden');
-            responsePanel.classList.add('hidden');
-            updateBodyState();
+        collectionTree.addEventListener('click', handleTreeClick);
+        collectionSearchInput.addEventListener('input', renderCollectionTree);
+        newCollectionBtn.addEventListener('click', createCollection);
+        restoreDefaultCollectionsBtn.addEventListener('click', restoreDefaultCollections);
+        importCollectionBtn.addEventListener('click', () => importCollectionInput.click());
+        importCollectionInput.addEventListener('change', async () => {
+            const files = Array.from(importCollectionInput.files || []);
+            importCollectionInput.value = '';
+            if (!files.length) return;
+            await importCollectionFiles(files);
         });
+        applyCollectionAuthBtn.addEventListener('click', applyCollectionAuth);
+        apiUrlInput.addEventListener('input', () => renderPathVariables(readPathVariables()));
+
+        if (pasteBearerTokenBtn) {
+            pasteBearerTokenBtn.addEventListener('click', async () => {
+                if (navigator.clipboard) {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        bearerTokenInput.value = text;
+                    } catch (err) {
+                        alert('Failed to read clipboard: ' + err.message);
+                    }
+                } else {
+                    alert('Clipboard API not supported.');
+                }
+            });
+        }
 
         addHeaderBtn.addEventListener('click', () => {
-            currentHeaders[`Header${Object.keys(currentHeaders).length + 1}`] = '';
-            renderHeadersTable();
+            addKeyValueRow(headersTableBody, 'header', { key: `Header${headersTableBody.rows.length + 1}`, value: '' });
         });
 
         addParamBtn.addEventListener('click', () => {
-            currentParams[`Parameter${Object.keys(currentParams).length + 1}`] = '';
-            renderParamsTable();
+            addKeyValueRow(paramsTableBody, 'param', { key: `Parameter${paramsTableBody.rows.length + 1}`, value: '' });
         });
 
         authTypeRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 currentAuthType = e.target.value;
+                editorAuthChanged = true;
                 updateAuthTypeDisplay();
             });
         });
@@ -3654,7 +4650,7 @@
         restoreOAuthFormState();
         applyDefaultOAuthTokenSettings();
         renderTokenTable();
-        renderApiTable();
+        initCollections();
 
         if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
             try {
