@@ -10,7 +10,7 @@
 		},
 		{
 			"key": "contact_center_base_url",
-			"value": "https://api.wxcc-us1.cisco.com",
+			"value": "https://api.wxcc-eu2.cisco.com",
 			"type": "default",
 			"enabled": true
 		},
