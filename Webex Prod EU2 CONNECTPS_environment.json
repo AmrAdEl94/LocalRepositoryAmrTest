@@ -28,7 +28,7 @@
 		},
 		{
 			"key": "client_secret",
-			"value": "YOUR_CLIENT_SECRET_HERE",
+			"value": "0e5070ff43cfdf05521afc5a65afd97da4a4eaadf1dcb029630ba8035d73d497",
 			"type": "secret",
 			"enabled": true
 		},
@@ -46,13 +46,13 @@
 		},
 		{
 			"key": "org_id",
-			"value": "YOUR_ORG_ID_HERE",
+			"value": "f98db768-273d-4357-8b80-438a86440bce",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "region",
-			"value": "us1",
+			"value": "eu2",
 			"type": "default",
 			"enabled": true
 		},
@@ -70,19 +70,19 @@
 		},
 		{
 			"key": "client_id",
-			"value": "YOUR_CLIENT_ID",
+			"value": "C76000bafb6439daa6ec3d2149337037f5aa17c708c12a1fade98dfa9e9ded41f",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "scope",
-			"value": "",
+			"value": "cjp:config_read cjp:config_write cjp:config cjp:user",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "datacenter",
-			"value": "",
+			"value": "eu2",
 			"type": "default",
 			"enabled": true
 		},
