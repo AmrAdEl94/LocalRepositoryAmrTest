@@ -1256,6 +1256,23 @@
             font-size: 12px;
             color: var(--text-muted);
         }
+        .graphql-section {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 18px;
+        }
+        .graphql-section.hidden {
+            display: none;
+        }
+        .graphql-section textarea {
+            min-height: 180px;
+        }
+        @media (max-width: 900px) {
+            .graphql-section {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
         .collection-context {
             display: flex;
             flex-wrap: wrap;
@@ -1665,9 +1682,6 @@
                                             </div>
                                             <div class="auth-type-selector">
                                                 <div class="auth-group">
-                                                    <label><input type="radio" name="authType" value="inherit"> Inherit from Parent</label>
-                                                </div>
-                                                <div class="auth-group">
                                                     <label><input type="radio" name="authType" value="none" checked> No Auth</label>
                                                 </div>
                                                 <div class="auth-group">
@@ -1682,11 +1696,6 @@
                                             </div>
                                             <div id="authInheritPanel" class="auth-inherit-panel" style="display: none;">
                                                 <p id="authInheritText"></p>
-                                                <div id="authInheritControls" class="auth-inherit-controls">
-                                                    <label for="collectionAuthTokenSelect">Token for the whole collection</label>
-                                                    <select id="collectionAuthTokenSelect"></select>
-                                                    <button type="button" id="applyCollectionAuthBtn" class="btn btn-secondary">Apply to Collection</button>
-                                                </div>
                                             </div>
                                             <div id="apiTokenReferenceRow" style="display: none; margin-top: 12px;">
                                                 <label for="apiTokenReference">Saved Token (Tokens tab)</label>
@@ -1727,12 +1736,23 @@
                                                 <option>JSON</option>
                                                 <option>XML</option>
                                                 <option>Text</option>
+                                                <option>GraphQL</option>
                                                 <option value="Preserved" hidden>Form data (kept as is)</option>
                                             </select>
                                         </div>
-                                        <div class="field-row body-row">
+                                        <div id="apiBodyRow" class="field-row body-row">
                                             <label for="apiBody">Body</label>
                                             <textarea id="apiBody" placeholder="Request body in JSON or XML"></textarea>
+                                        </div>
+                                        <div id="graphqlSection" class="graphql-section hidden">
+                                            <div class="field-row">
+                                                <label for="apiGraphqlQuery">GraphQL Query</label>
+                                                <textarea id="apiGraphqlQuery" placeholder="query { ... }"></textarea>
+                                            </div>
+                                            <div class="field-row">
+                                                <label for="apiGraphqlVariables">GraphQL Variables (JSON)</label>
+                                                <textarea id="apiGraphqlVariables" placeholder='{ "id": "{{org_id}}" }'></textarea>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="editor-actions">
@@ -2051,9 +2071,10 @@
         const pathVarsTableBody = document.getElementById('pathVarsTableBody');
         const authInheritPanel = document.getElementById('authInheritPanel');
         const authInheritText = document.getElementById('authInheritText');
-        const authInheritControls = document.getElementById('authInheritControls');
-        const collectionAuthTokenSelect = document.getElementById('collectionAuthTokenSelect');
-        const applyCollectionAuthBtn = document.getElementById('applyCollectionAuthBtn');
+        const apiBodyRow = document.getElementById('apiBodyRow');
+        const graphqlSection = document.getElementById('graphqlSection');
+        const apiGraphqlQuery = document.getElementById('apiGraphqlQuery');
+        const apiGraphqlVariables = document.getElementById('apiGraphqlVariables');
         const saveStatus = document.getElementById('saveStatus');
         const apiEditor = document.getElementById('apiEditor');
         const responsePanel = document.getElementById('responsePanel');
@@ -2199,6 +2220,7 @@
         let editorOriginalAuth = null;
         let editorAuthChanged = false;
         let editorAuthDefaulted = false;
+        let editorAuthSource = '';
         let treeNodeRegistry = new Map();
         const expandedTreeNodes = new WeakSet();
         let currentAuthType = 'none';
@@ -2797,7 +2819,7 @@
                 hideVariableSuggestions();
             }, true);
             window.addEventListener('resize', hideVariableSuggestions);
-            [apiUrlInput, apiBodyInput, basicAuthUsername, basicAuthPassword, bearerTokenInput,
+            [apiUrlInput, apiBodyInput, apiGraphqlQuery, apiGraphqlVariables, basicAuthUsername, basicAuthPassword, bearerTokenInput,
                 tokenAuthUrlInput, tokenAccessUrlInput, tokenClientIdInput, tokenClientSecretInput, tokenScopeInput, tokenCallbackInput]
                 .forEach(enhanceVariableField);
         }
@@ -4098,41 +4120,50 @@
             if (bearerTokenInput) bearerTokenInput.value = '';
             if (apiTokenReference) apiTokenReference.value = '';
             editorAuthDefaulted = false;
+            editorAuthSource = '';
+            let shownAuth = auth;
             if (!auth) {
-                // Nothing set on the request: show what the parents set, otherwise default to the environment's saved token.
-                if (getInheritedAuth(currentCollection, currentRequestItem).auth) {
-                    currentAuthType = 'inherit';
-                } else {
-                    currentAuthType = 'oauth2';
-                    editorAuthDefaulted = true;
-                }
-            } else if (auth.type === 'noauth') {
-                currentAuthType = 'none';
-            } else if (auth.type === 'basic') {
-                currentAuthType = 'basic';
-                basicAuthUsername.value = getAuthParam(auth, 'username');
-                basicAuthPassword.value = getAuthParam(auth, 'password');
-            } else if (auth.type === 'bearer') {
-                currentAuthType = 'bearer';
-                if (bearerTokenInput) bearerTokenInput.value = getAuthParam(auth, 'token');
-            } else if (auth.type === 'oauth2') {
+                // Nothing set on the request: show what its folder/collection sets, otherwise the environment's saved token.
+                // This default is only written into the request when the user changes it.
+                const inherited = getInheritedAuth(currentCollection, currentRequestItem);
+                shownAuth = inherited.auth && EDITABLE_AUTH_TYPES.includes(inherited.auth.type) ? inherited.auth : null;
+                editorAuthSource = shownAuth ? inherited.source : '';
+                editorAuthDefaulted = true;
+            }
+            if (!shownAuth) {
                 currentAuthType = 'oauth2';
-                const tokenName = getAuthParam(auth, 'tokenName');
+            } else if (shownAuth.type === 'noauth') {
+                currentAuthType = 'none';
+            } else if (shownAuth.type === 'basic') {
+                currentAuthType = 'basic';
+                basicAuthUsername.value = getAuthParam(shownAuth, 'username');
+                basicAuthPassword.value = getAuthParam(shownAuth, 'password');
+            } else if (shownAuth.type === 'bearer') {
+                currentAuthType = 'bearer';
+                if (bearerTokenInput) bearerTokenInput.value = getAuthParam(shownAuth, 'token');
+            } else if (shownAuth.type === 'oauth2') {
+                currentAuthType = 'oauth2';
+                const tokenName = getAuthParam(shownAuth, 'tokenName');
                 if (apiTokenReference && tokenName) {
                     ensureSelectOption(apiTokenReference, tokenName, `${tokenName} (not saved on this website)`);
                     apiTokenReference.value = tokenName;
                 }
             } else {
-                currentAuthType = 'inherit';
+                // An auth type this website cannot edit: no option is selected and it is kept unchanged.
+                currentAuthType = 'unsupported';
             }
             updateAuthTypeDisplay();
+        }
+
+        function markAuthChanged() {
+            editorAuthChanged = true;
+            updateAuthInheritPanel();
         }
 
         function buildAuthFromEditor() {
             if (isUnsupportedOriginalAuth()) return editorOriginalAuth;
             // The default "environment's token" choice is not written into the request unless the user changes the auth.
             if (editorAuthDefaulted && !editorAuthChanged) return null;
-            if (currentAuthType === 'inherit') return null;
             if (currentAuthType === 'basic') {
                 return { type: 'basic', basic: [
                     { key: 'username', value: basicAuthUsername.value.trim(), type: 'string' },
@@ -4179,51 +4210,16 @@
             if (!authInheritPanel) return;
             if (isUnsupportedOriginalAuth()) {
                 authInheritText.textContent = `This request uses "${editorOriginalAuth.type}" authorization, which this website cannot edit or send. It is kept unchanged when you save.`;
-                authInheritControls.style.display = 'none';
                 authInheritPanel.style.display = 'block';
                 return;
             }
-            if (currentAuthType !== 'inherit' || !currentCollection) {
-                authInheritPanel.style.display = 'none';
+            if (editorAuthDefaulted && !editorAuthChanged && editorAuthSource && currentCollection) {
+                const inherited = getInheritedAuth(currentCollection, currentRequestItem);
+                authInheritText.textContent = `Shows ${describeAuth(inherited.auth)} set on "${editorAuthSource}". It is only saved on this request if you change it.`;
+                authInheritPanel.style.display = 'block';
                 return;
             }
-            const inherited = getInheritedAuth(currentCollection, currentRequestItem);
-            const environment = getEffectiveEnvironment();
-            const environmentToken = getEnvironmentToken(environment);
-            if (inherited.auth) {
-                authInheritText.textContent = `Uses ${describeAuth(inherited.auth)} from "${inherited.source}".`;
-            } else if (environmentToken) {
-                authInheritText.textContent = `No authorization is set on its folders or collection, so the token "${environmentToken.name}" linked to the environment "${environment.name}" is used.`;
-            } else {
-                authInheritText.textContent = 'No authorization is set on its folders or collection and no token is linked to the environment, so no Authorization header is sent. Link a token in Environments, choose one for the whole collection below, or pick another option above.';
-            }
-            collectionAuthTokenSelect.innerHTML = '<option value="">No token (remove collection auth)</option>';
-            tokenList.forEach(token => ensureSelectOption(collectionAuthTokenSelect, token.name));
-            const collectionTokenName = currentCollection.auth && currentCollection.auth.type === 'oauth2' ? getAuthParam(currentCollection.auth, 'tokenName') : '';
-            if (collectionTokenName) {
-                ensureSelectOption(collectionAuthTokenSelect, collectionTokenName, `${collectionTokenName} (not saved on this website)`);
-                collectionAuthTokenSelect.value = collectionTokenName;
-            }
-            authInheritControls.style.display = 'flex';
-            authInheritPanel.style.display = 'block';
-        }
-
-        async function applyCollectionAuth() {
-            if (!currentCollection) return;
-            const tokenName = collectionAuthTokenSelect.value;
-            if (tokenName) {
-                const params = currentCollection.auth && currentCollection.auth.type === 'oauth2' && Array.isArray(currentCollection.auth.oauth2)
-                    ? currentCollection.auth.oauth2.filter(entry => entry && entry.key !== 'tokenName')
-                    : [];
-                if (!params.some(entry => entry.key === 'addTokenTo')) params.push({ key: 'addTokenTo', value: 'header', type: 'string' });
-                params.push({ key: 'tokenName', value: tokenName, type: 'string' });
-                currentCollection.auth = { type: 'oauth2', oauth2: params };
-            } else {
-                delete currentCollection.auth;
-            }
-            await persistCollection(currentCollection);
-            updateAuthInheritPanel();
-            showSaveStatus(tokenName ? `Collection now uses the saved token "${tokenName}".` : 'Collection authorization removed.');
+            authInheritPanel.style.display = 'none';
         }
 
         function loadBodyIntoEditor(body) {
@@ -4231,9 +4227,21 @@
             const preservedOption = apiBodyFormatInput.querySelector('option[value="Preserved"]');
             preservedOption.hidden = true;
             apiBodyInput.readOnly = false;
+            apiGraphqlQuery.value = '';
+            apiGraphqlVariables.value = '';
             if (!body || !body.mode || (body.mode === 'raw' && !body.raw)) {
                 apiBodyFormatInput.value = 'None';
                 apiBodyInput.value = '';
+                return;
+            }
+            if (body.mode === 'graphql') {
+                // Postman stores { mode: "graphql", graphql: { query, variables } } with variables as a JSON string.
+                const graphql = body.graphql || {};
+                apiBodyFormatInput.value = 'GraphQL';
+                apiBodyInput.value = '';
+                apiGraphqlQuery.value = graphql.query || '';
+                apiGraphqlVariables.value = graphql.variables === undefined || graphql.variables === null ? ''
+                    : (typeof graphql.variables === 'string' ? graphql.variables : JSON.stringify(graphql.variables, null, 2));
                 return;
             }
             if (body.mode === 'raw') {
@@ -4260,6 +4268,11 @@
         function buildBodyFromEditor() {
             const format = apiBodyFormatInput.value;
             if (format === 'Preserved' && editorPreservedBody) return editorPreservedBody;
+            if (format === 'GraphQL') {
+                const query = apiGraphqlQuery.value.trim();
+                const variables = apiGraphqlVariables.value.trim();
+                return query || variables ? { mode: 'graphql', graphql: { query, variables } } : undefined;
+            }
             const text = apiBodyInput.value.trim();
             if (format === 'None' || format === 'Preserved' || !text) return undefined;
             const language = format === 'XML' ? 'xml' : (format === 'JSON' ? 'json' : 'text');
@@ -4315,9 +4328,7 @@
 
         function updateAuthTypeDisplay() {
             authTypeRadios.forEach(radio => {
-                if (radio.value === currentAuthType) {
-                    radio.checked = true;
-                }
+                radio.checked = radio.value === currentAuthType;
             });
             basicAuthSection.style.display = currentAuthType === 'basic' ? 'block' : 'none';
             if (bearerAuthSection) {
@@ -5060,6 +5071,13 @@
                 apiBodyInput.readOnly = false;
                 apiBodyInput.value = '';
             }
+            const isGraphql = bodyType === 'GraphQL';
+            const bodyIgnored = method === 'GET' || method === 'DELETE';
+            apiBodyRow.style.display = isGraphql ? 'none' : '';
+            graphqlSection.classList.toggle('hidden', !isGraphql);
+            apiGraphqlQuery.disabled = bodyIgnored;
+            apiGraphqlVariables.disabled = bodyIgnored;
+            apiGraphqlQuery.placeholder = bodyIgnored ? 'Body is ignored for GET/DELETE requests (use POST for GraphQL)' : 'query { ... }';
             if (method === 'GET' || method === 'DELETE' || bodyType === 'None') {
                 apiBodyInput.disabled = true;
                 if (bodyType === 'None') {
@@ -5128,24 +5146,15 @@
         // Returns false when the request must not be sent.
         async function applyAuthorization(headersMap) {
             if (isUnsupportedOriginalAuth()) return true;
-            let descriptor;
-            if (currentAuthType === 'inherit') {
-                const { auth } = getInheritedAuth(currentCollection, currentRequestItem);
-                // Nothing inherited: fall back to the environment's token (sent only if one is linked).
-                descriptor = auth ? { fromEditor: false, type: 'none' } : { fromEditor: false, type: 'oauth2', tokenRef: '', accessToken: '' };
-                if (auth && auth.type === 'basic') descriptor = { type: 'basic', username: getAuthParam(auth, 'username'), password: getAuthParam(auth, 'password') };
-                else if (auth && auth.type === 'bearer') descriptor = { type: 'bearer', token: getAuthParam(auth, 'token') };
-                else if (auth && auth.type === 'oauth2') descriptor = { type: 'oauth2', tokenRef: getAuthParam(auth, 'tokenName'), accessToken: getAuthParam(auth, 'accessToken'), fromEditor: false };
-            } else {
-                descriptor = {
-                    fromEditor: true,
-                    type: currentAuthType,
-                    username: basicAuthUsername.value.trim(),
-                    password: basicAuthPassword.value.trim(),
-                    token: bearerTokenInput ? bearerTokenInput.value.trim() : '',
-                    tokenRef: apiTokenReference ? apiTokenReference.value.trim() : ''
-                };
-            }
+            // The editor always shows the auth that applies (the request's own, its folder/collection's, or the environment's token).
+            const descriptor = {
+                fromEditor: true,
+                type: currentAuthType,
+                username: basicAuthUsername.value.trim(),
+                password: basicAuthPassword.value.trim(),
+                token: bearerTokenInput ? bearerTokenInput.value.trim() : '',
+                tokenRef: apiTokenReference ? apiTokenReference.value.trim() : ''
+            };
 
             if (descriptor.type === 'oauth2') {
                 let tokenRef = descriptor.tokenRef;
@@ -5259,6 +5268,24 @@
                         bodyPreview = preserved.preview;
                         if (preserved.contentType) requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || preserved.contentType;
                     }
+                } else if (bodyFormat === 'GraphQL') {
+                    const query = resolveRequestVars(apiGraphqlQuery.value.trim());
+                    const variablesText = resolveRequestVars(apiGraphqlVariables.value.trim());
+                    if (query || variablesText) {
+                        let variables = {};
+                        if (variablesText) {
+                            try {
+                                variables = JSON.parse(variablesText);
+                            } catch (error) {
+                                alert(`GraphQL variables must be valid JSON: ${error.message}`);
+                                return;
+                            }
+                        }
+                        const payload = { query, variables };
+                        requestOptions.headers['Content-Type'] = requestOptions.headers['Content-Type'] || 'application/json';
+                        requestOptions.body = JSON.stringify(payload);
+                        bodyPreview = JSON.stringify(payload, null, 2);
+                    }
                 } else {
                     const bodyText = apiBodyInput.value.trim();
                     if (bodyText) {
@@ -5330,13 +5357,11 @@
             if (!files.length) return;
             await importCollectionFiles(files);
         });
-        applyCollectionAuthBtn.addEventListener('click', applyCollectionAuth);
+        [basicAuthUsername, basicAuthPassword, bearerTokenInput].forEach(input => input.addEventListener('input', markAuthChanged));
         collectionEnvironmentSelect.addEventListener('change', () => {
             if (currentCollection) setCollectionEnvironment(currentCollection, collectionEnvironmentSelect.value);
         });
-        apiTokenReference.addEventListener('change', () => {
-            editorAuthChanged = true;
-        });
+        apiTokenReference.addEventListener('change', markAuthChanged);
         apiUrlInput.addEventListener('input', () => renderPathVariables(readPathVariables()));
 
         if (pasteBearerTokenBtn) {
@@ -5345,6 +5370,7 @@
                     try {
                         const text = await navigator.clipboard.readText();
                         bearerTokenInput.value = text;
+                        markAuthChanged();
                     } catch (err) {
                         alert('Failed to read clipboard: ' + err.message);
                     }
