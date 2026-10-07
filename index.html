@@ -1245,9 +1245,89 @@
             font-weight: 600;
             margin-bottom: 16px;
         }
-        .environment-name-row {
-            max-width: 420px;
+        .environment-settings-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 420px));
+            gap: 18px;
             margin-bottom: 18px;
+        }
+        .field-help {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .collection-context {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            font-size: 13px;
+            color: #334155;
+        }
+        .collection-context select {
+            appearance: none;
+            -webkit-appearance: none;
+            min-width: 260px;
+            border: 1px solid var(--border-strong);
+            border-radius: 6px;
+            padding: 6px 32px 6px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;
+            cursor: pointer;
+        }
+        .collection-context select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--focus-ring);
+        }
+        .tree-env-tag {
+            flex-shrink: 0;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--success-soft);
+            color: #166534;
+            font-size: 10.5px;
+            font-weight: 500;
+        }
+        .tree-star {
+            display: inline-flex;
+            flex-shrink: 0;
+            color: #f59e0b;
+        }
+        .tree-row:hover .tree-star,
+        .tree-row.is-selected .tree-star,
+        .tree-row:focus-within .tree-star {
+            display: none;
+        }
+        .tree-favorites {
+            font-weight: 600;
+            color: #b45309;
+        }
+        .tree-favorites .tree-icon {
+            color: #f59e0b;
+        }
+        .tree-action.is-favorite {
+            color: #f59e0b;
+        }
+        .tree-divider {
+            height: 1px;
+            margin: 6px 4px;
+            background: var(--border);
+        }
+        @media (max-width: 700px) {
+            .environment-settings-row {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
         #environmentTable td:nth-child(2),
         #environmentTable td:last-child {
@@ -1521,9 +1601,13 @@
 
                                 <div id="apiEditor" class="api-editor hidden">
                                     <div id="apiEditorPath" class="editor-path"></div>
+                                    <div class="collection-context">
+                                        <label for="collectionEnvironmentSelect">Environment for collection <strong id="collectionEnvironmentName"></strong></label>
+                                        <select id="collectionEnvironmentSelect"></select>
+                                    </div>
                                     <h6>Request Details</h6>
                                     <div class="form-grid">
-                                        <div class="env-hint">Tip: use <code>{{variable}}</code> in the URL, parameters, headers, body or auth fields. Values come from the active environment first, then from the collection's own variables (such as <code>{{baseUrl}}</code>).</div>
+                                        <div class="env-hint">Tip: use <code>{{variable}}</code> in the URL, parameters, headers, body or auth fields. Values come from the collection's environment (or the website's when set to "Inherit from Parent"), then from the collection's own variables (such as <code>{{baseUrl}}</code>).</div>
                                         <div class="field-row">
                                             <label for="apiName">Name</label>
                                             <input id="apiName" type="text" placeholder="Example: Search Devices">
@@ -1823,6 +1907,7 @@
                                     <tr>
                                         <th>Name</th>
                                         <th>Variables</th>
+                                        <th>Linked Token</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -1833,9 +1918,16 @@
 
                         <div id="environmentEditor" class="environment-editor hidden">
                             <h6 id="environmentEditorTitle">New Environment</h6>
-                            <div class="field-row environment-name-row">
-                                <label for="environmentNameInput">Environment Name</label>
-                                <input id="environmentNameInput" type="text" placeholder="Example: Production">
+                            <div class="environment-settings-row">
+                                <div class="field-row">
+                                    <label for="environmentNameInput">Environment Name</label>
+                                    <input id="environmentNameInput" type="text" placeholder="Example: Production">
+                                </div>
+                                <div class="field-row">
+                                    <label for="environmentTokenSelect">Linked Token (optional)</label>
+                                    <select id="environmentTokenSelect"></select>
+                                    <span class="field-help">Requests use this saved token by default while this environment is active. It is stored on this website only and is not part of exported environment files.</span>
+                                </div>
                             </div>
                             <div class="headers-section">
                                 <div class="headers-section-title">
@@ -2012,6 +2104,9 @@
         const addEnvironmentVariableBtn = document.getElementById('addEnvironmentVariableBtn');
         const saveEnvironmentBtn = document.getElementById('saveEnvironmentBtn');
         const cancelEnvironmentBtn = document.getElementById('cancelEnvironmentBtn');
+        const environmentTokenSelect = document.getElementById('environmentTokenSelect');
+        const collectionEnvironmentSelect = document.getElementById('collectionEnvironmentSelect');
+        const collectionEnvironmentName = document.getElementById('collectionEnvironmentName');
         const generateTokenBtn = document.getElementById('generateTokenBtn');
         const useCorsProxy = document.getElementById('useCorsProxy');
         const responseUrl = document.getElementById('responseUrl');
@@ -2103,6 +2198,7 @@
         let editorPreservedBody = null;
         let editorOriginalAuth = null;
         let editorAuthChanged = false;
+        let editorAuthDefaulted = false;
         let treeNodeRegistry = new Map();
         const expandedTreeNodes = new WeakSet();
         let currentAuthType = 'none';
@@ -2160,6 +2256,7 @@
             tokenTableBody.querySelectorAll('button[data-token-delete]').forEach(button => {
                 button.addEventListener('click', () => deleteToken(Number(button.dataset.tokenDelete)));
             });
+            renderEnvironmentTable();
             tokenTableBody.querySelectorAll('button[data-token-index]').forEach(button => {
                 button.addEventListener('click', () => {
                     const index = Number(button.dataset.tokenIndex);
@@ -2195,7 +2292,8 @@
         function populateTokenReferenceSelect() {
             if (!apiTokenReference) return;
             const currentValue = apiTokenReference.value;
-            apiTokenReference.innerHTML = '<option value="">Select a saved OAuth token</option>';
+            // The empty value means "use the token linked to the environment in use".
+            apiTokenReference.innerHTML = '<option value="">Environment\'s token</option>';
             tokenList.forEach(token => {
                 const option = document.createElement('option');
                 option.value = token.name;
@@ -2203,8 +2301,10 @@
                 apiTokenReference.appendChild(option);
             });
             if (currentValue) {
+                ensureSelectOption(apiTokenReference, currentValue, `${currentValue} (not saved on this website)`);
                 apiTokenReference.value = currentValue;
             }
+            updateEnvironmentTokenOption();
         }
 
         function resetTokenForm() {
@@ -2302,8 +2402,46 @@
                 id: (raw.id || '').toString() || generateUuid(),
                 name: (raw.name || '').toString().trim(),
                 variables,
-                color: raw.color === undefined ? null : raw.color
+                color: raw.color === undefined ? null : raw.color,
+                // Website-only link to a saved token; never written to exported environment files.
+                tokenName: (raw.tokenName || '').toString()
             };
+        }
+
+        // Environment chosen per collection ("Inherit from Parent" = not in this map), stored by collection id.
+        let collectionEnvironmentMap = {};
+
+        function loadCollectionEnvironmentMap() {
+            try {
+                collectionEnvironmentMap = JSON.parse(localStorage.getItem('collectionEnvironmentMap') || '{}') || {};
+            } catch (error) {
+                collectionEnvironmentMap = {};
+            }
+        }
+
+        function saveCollectionEnvironmentMap() {
+            localStorage.setItem('collectionEnvironmentMap', JSON.stringify(collectionEnvironmentMap));
+        }
+
+        function getCollectionEnvironment(collection) {
+            const name = collection && collection.info ? collectionEnvironmentMap[collection.info._postman_id] : '';
+            if (!name) return null;
+            const index = findEnvironmentIndexByName(name);
+            return index === -1 ? null : environmentList[index];
+        }
+
+        // The environment used by the Collection Manager: the collection's own, otherwise the website's.
+        function getEffectiveEnvironment(collection = currentCollection) {
+            return getCollectionEnvironment(collection) || getActiveEnvironment();
+        }
+
+        function getEnvironmentForField(field) {
+            return field && field.closest('#collection') ? getEffectiveEnvironment() : getActiveEnvironment();
+        }
+
+        function getEnvironmentToken(environment) {
+            if (!environment || !environment.tokenName) return null;
+            return tokenList.find(token => normalizeName(token.name) === normalizeName(environment.tokenName)) || null;
         }
 
         function loadEnvironments() {
@@ -2333,12 +2471,11 @@
             return index === -1 ? null : environmentList[index];
         }
 
-        // Replaces {{name}} placeholders with values from the active environment (enabled variables only).
+        // Replaces {{name}} placeholders with values from an environment (the website's active one by default; enabled variables only).
         // Unknown variables are left as-is so they stay visible in the request preview.
-        function resolveEnvVars(value) {
+        function resolveEnvVars(value, environment = getActiveEnvironment()) {
             if (value === null || value === undefined) return '';
             const text = value.toString();
-            const environment = getActiveEnvironment();
             if (!environment || !text.includes('{{')) return text;
             return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name) => {
                 const variable = (environment.variables || []).find(item => item.key === name && item.enabled !== false);
@@ -2380,13 +2517,15 @@
             return names;
         }
 
-        // Where a {{variable}} gets its value: the active environment, then (in the Collection Manager) the open collection.
+        // Where a {{variable}} gets its value: the environment (in the Collection Manager the collection's own, else the website's),
+        // then (in the Collection Manager) the open collection's variables.
         function getVariableInfo(name, field) {
-            const environment = getActiveEnvironment();
+            const environment = getEnvironmentForField(field);
             if (!environment) return { status: 'missing', message: 'No Environment Selected' };
             const variable = (environment.variables || []).find(item => item.key === name && item.enabled !== false);
             if (variable && variable.value !== '') {
-                return { status: 'ok', value: variable.value, secret: variable.type === 'secret', source: `Environment: ${environment.name}` };
+                const level = field && field.closest('#collection') && getCollectionEnvironment(currentCollection) ? ' (set on this collection)' : '';
+                return { status: 'ok', value: variable.value, secret: variable.type === 'secret', source: `Environment: ${environment.name}${level}` };
             }
             if (field && field.closest('#collection') && currentCollection && Array.isArray(currentCollection.variable)) {
                 const collectionVariable = currentCollection.variable.find(item => item && item.key === name && item.disabled !== true);
@@ -2537,7 +2676,7 @@
 
         // Shows the active environment's variables while the caret is inside "{{ }}". Nothing is shown without an environment.
         function updateVariableSuggestions(field) {
-            const environment = getActiveEnvironment();
+            const environment = getEnvironmentForField(field);
             const context = environment && document.activeElement === field ? getVariableSuggestionContext(field) : null;
             if (!context) {
                 hideVariableSuggestions();
@@ -2674,21 +2813,60 @@
             const activeEnvironment = getActiveEnvironment();
             activeEnvironmentSelect.value = activeEnvironment ? activeEnvironment.name : '';
             activeEnvironmentSelect.closest('.env-switcher').classList.toggle('is-active', !!activeEnvironment);
+            renderCollectionEnvironmentSelect();
+            updateEnvironmentTokenOption();
             refreshVariableFields();
+            if (currentCollection) updateAuthInheritPanel();
+        }
+
+        function renderCollectionEnvironmentSelect() {
+            if (!collectionEnvironmentSelect || !currentCollection) return;
+            const websiteEnvironment = getActiveEnvironment();
+            collectionEnvironmentSelect.innerHTML = '';
+            const inheritOption = document.createElement('option');
+            inheritOption.value = '';
+            inheritOption.textContent = `Inherit from Parent (website: ${websiteEnvironment ? websiteEnvironment.name : 'No Environment'})`;
+            collectionEnvironmentSelect.appendChild(inheritOption);
+            environmentList.forEach(environment => ensureSelectOption(collectionEnvironmentSelect, environment.name));
+            const collectionEnvironment = getCollectionEnvironment(currentCollection);
+            collectionEnvironmentSelect.value = collectionEnvironment ? collectionEnvironment.name : '';
+            collectionEnvironmentName.textContent = `"${currentCollection.info.name}"`;
+        }
+
+        function setCollectionEnvironment(collection, environmentName) {
+            const id = getCollectionId(collection);
+            if (environmentName) collectionEnvironmentMap[id] = environmentName;
+            else delete collectionEnvironmentMap[id];
+            saveCollectionEnvironmentMap();
+            renderEnvironmentSelect();
+            renderCollectionTree();
+        }
+
+        // Label of the "use the environment's token" choice in the request's Saved Token list.
+        function updateEnvironmentTokenOption() {
+            const option = apiTokenReference && apiTokenReference.querySelector('option[value=""]');
+            if (!option) return;
+            const environment = getEffectiveEnvironment();
+            if (!environment) option.textContent = "Environment's token (no environment selected)";
+            else if (!environment.tokenName) option.textContent = `Environment's token (none linked to ${environment.name})`;
+            else option.textContent = `Environment's token: ${environment.tokenName} (${environment.name})${getEnvironmentToken(environment) ? '' : ' - not saved'}`;
         }
 
         function renderEnvironmentTable() {
             environmentTableBody.innerHTML = '';
             if (!environmentList.length) {
-                environmentTableBody.innerHTML = '<tr><td colspan="4" class="cell-muted">No environments yet. Click "New Environment" or "Import" to add one.</td></tr>';
+                environmentTableBody.innerHTML = '<tr><td colspan="5" class="cell-muted">No environments yet. Click "New Environment" or "Import" to add one.</td></tr>';
             }
             const activeEnvironment = getActiveEnvironment();
             environmentList.forEach((environment, index) => {
                 const isActive = environment === activeEnvironment;
+                const linkedToken = !environment.tokenName ? '<span class="cell-muted">None</span>'
+                    : `${escapeHtml(environment.tokenName)}${getEnvironmentToken(environment) ? '' : ' <span class="badge badge-muted">not saved</span>'}`;
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${escapeHtml(environment.name)}</td>
                     <td class="cell-muted">${(environment.variables || []).length}</td>
+                    <td>${linkedToken}</td>
                     <td><span class="badge ${isActive ? 'badge-success' : 'badge-muted'}">${isActive ? 'Active' : 'Inactive'}</span></td>
                     <td>
                         <div class="environment-row-actions">
@@ -2740,6 +2918,12 @@
             const environment = index === null ? { name: '', variables: [] } : environmentList[index];
             environmentEditorTitle.textContent = index === null ? 'New Environment' : `Edit Environment: ${environment.name}`;
             environmentNameInput.value = environment.name;
+            environmentTokenSelect.innerHTML = '<option value="">No linked token</option>';
+            tokenList.forEach(token => ensureSelectOption(environmentTokenSelect, token.name));
+            if (environment.tokenName) {
+                ensureSelectOption(environmentTokenSelect, environment.tokenName, `${environment.tokenName} (not saved on this website)`);
+                environmentTokenSelect.value = environment.tokenName;
+            }
             environmentVariablesBody.innerHTML = '';
             (environment.variables || []).forEach(variable => addEnvironmentVariableRow(variable));
             if (!(environment.variables || []).length) addEnvironmentVariableRow();
@@ -2773,11 +2957,18 @@
                 id: existing ? existing.id : '',
                 name,
                 values: rows,
-                color: existing ? existing.color : null
+                color: existing ? existing.color : null,
+                tokenName: environmentTokenSelect.value
             }, problems);
             if (problems.length) {
                 alert(`Fix these variables before saving:\n- ${problems.join('\n- ')}`);
                 return;
+            }
+            if (existing && existing.name !== name) {
+                Object.keys(collectionEnvironmentMap).forEach(id => {
+                    if (normalizeName(collectionEnvironmentMap[id]) === normalizeName(existing.name)) collectionEnvironmentMap[id] = name;
+                });
+                saveCollectionEnvironmentMap();
             }
             const wasActive = existing !== null && existing === getActiveEnvironment();
             if (currentEnvironmentIndex === null) {
@@ -2796,6 +2987,10 @@
             const environment = environmentList[index];
             if (!confirm(`Delete environment "${environment.name}"?`)) return;
             if (environment === getActiveEnvironment()) activeEnvironmentName = '';
+            Object.keys(collectionEnvironmentMap).forEach(id => {
+                if (normalizeName(collectionEnvironmentMap[id]) === normalizeName(environment.name)) delete collectionEnvironmentMap[id];
+            });
+            saveCollectionEnvironmentMap();
             environmentList.splice(index, 1);
             if (currentEnvironmentIndex === index) {
                 closeEnvironmentEditor();
@@ -2862,6 +3057,8 @@
                     added++;
                 } else if (replaceExisting) {
                     if (environmentList[existingIndex] === getActiveEnvironment()) activeEnvironmentName = environment.name;
+                    // Imported files never carry the website-only token link, so keep the existing one.
+                    environment.tokenName = environmentList[existingIndex].tokenName || '';
                     environmentList[existingIndex] = environment;
                     replaced++;
                 } else {
@@ -3085,6 +3282,13 @@
                 value,
                 accessToken: value
             };
+            const previousName = target.index !== null && tokenList[target.index] ? tokenList[target.index].name : '';
+            if (previousName && normalizeName(previousName) !== normalizeName(name)) {
+                environmentList.forEach(environment => {
+                    if (normalizeName(environment.tokenName) === normalizeName(previousName)) environment.tokenName = name;
+                });
+                saveEnvironments();
+            }
             storeToken(tokenData, target.index);
             saveTokens();
             renderTokenTable();
@@ -3386,8 +3590,10 @@
                     skipped++;
                     continue;
                 }
+                let previousId = '';
                 if (existingIndex !== -1) {
                     const existing = collectionList[existingIndex];
+                    previousId = getCollectionId(existing);
                     if (existing === currentCollection) closeRequestEditor();
                     collectionList[existingIndex] = collection;
                     await removeCollectionRecord(existing);
@@ -3397,6 +3603,18 @@
                     added++;
                 }
                 ensureUniqueCollectionId(collection);
+                if (previousId && previousId !== getCollectionId(collection)) {
+                    // Keep the replaced collection's environment choice and favorites.
+                    if (collectionEnvironmentMap[previousId]) {
+                        collectionEnvironmentMap[getCollectionId(collection)] = collectionEnvironmentMap[previousId];
+                        delete collectionEnvironmentMap[previousId];
+                        saveCollectionEnvironmentMap();
+                    }
+                    favoriteList.forEach(favorite => {
+                        if (favorite.collectionId === previousId) favorite.collectionId = getCollectionId(collection);
+                    });
+                    saveFavorites();
+                }
                 await persistCollection(collection);
             }
             renderCollectionTree();
@@ -3441,6 +3659,10 @@
                 collectionList = [];
                 showCollectionNotice(`Collections cannot be saved in this browser (${error.message}). Changes will be lost when the page is closed.`);
             }
+            if (localStorage.getItem('migration.contactCenterBaseUrl') !== 'done') {
+                for (const collection of migrateContactCenterBaseUrl()) await persistCollection(collection);
+                localStorage.setItem('migration.contactCenterBaseUrl', 'done');
+            }
             if (localStorage.getItem('collectionsInitialized') !== 'true') {
                 const { candidates, errors, manifestLoaded } = await fetchDefaultCollections();
                 await addCollections(candidates, false);
@@ -3448,6 +3670,91 @@
                 if (errors.length) showCollectionNotice(errors.join(' '));
             }
             renderCollectionTree();
+        }
+
+        // Webex Contact Center requests use their own base URL variable. Updates copies saved before the default file changed.
+        function migrateContactCenterBaseUrl() {
+            const replaceBaseUrl = text => text.split('{{baseUrl}}').join('{{contact_center_base_url}}');
+            const changed = [];
+            collectionList.filter(collection => collection.info.name === 'Webex Contact Center').forEach(collection => {
+                let count = 0;
+                walkRequests(collection.item, item => {
+                    const url = item.request && item.request.url;
+                    if (!url || typeof url !== 'object') return;
+                    if (typeof url.raw === 'string' && url.raw.includes('{{baseUrl}}')) {
+                        url.raw = replaceBaseUrl(url.raw);
+                        count++;
+                    }
+                    if (Array.isArray(url.host)) url.host = url.host.map(part => (typeof part === 'string' ? replaceBaseUrl(part) : part));
+                });
+                if (count) changed.push(collection);
+            });
+            return changed;
+        }
+
+        // ---------- Favorites (stored by collection id + request id; items get a Postman "id" when first favorited) ----------
+        let favoriteList = [];
+        let favoritesExpanded = true;
+
+        function loadFavorites() {
+            try {
+                favoriteList = JSON.parse(localStorage.getItem('collectionFavorites') || '[]') || [];
+            } catch (error) {
+                favoriteList = [];
+            }
+        }
+
+        function saveFavorites() {
+            localStorage.setItem('collectionFavorites', JSON.stringify(favoriteList));
+        }
+
+        function isFavorite(collection, item) {
+            return !!item.id && favoriteList.some(favorite => favorite.collectionId === getCollectionId(collection) && favorite.itemId === item.id);
+        }
+
+        function findItemById(items, id) {
+            for (const item of items || []) {
+                if (item.id === id && item.request !== undefined) return { item, parentItems: items };
+                if (Array.isArray(item.item)) {
+                    const found = findItemById(item.item, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function getFavoriteEntries() {
+            return favoriteList.map(favorite => {
+                const collection = collectionList.find(candidate => getCollectionId(candidate) === favorite.collectionId);
+                const found = collection && findItemById(collection.item, favorite.itemId);
+                return found ? { collection, item: found.item, parentItems: found.parentItems } : null;
+            }).filter(Boolean);
+        }
+
+        async function toggleFavorite(collection, item) {
+            if (isFavorite(collection, item)) {
+                favoriteList = favoriteList.filter(favorite => !(favorite.collectionId === getCollectionId(collection) && favorite.itemId === item.id));
+            } else {
+                if (!item.id) {
+                    item.id = generateUuid();
+                    await persistCollection(collection);
+                }
+                favoriteList.push({ collectionId: getCollectionId(collection), itemId: item.id });
+                favoritesExpanded = true;
+            }
+            saveFavorites();
+            renderCollectionTree();
+        }
+
+        function removeFavoritesInside(collection, container) {
+            const before = favoriteList.length;
+            favoriteList = favoriteList.filter(favorite => {
+                if (favorite.collectionId !== getCollectionId(collection)) return true;
+                if (container === collection) return false;
+                const found = findItemById(collection.item, favorite.itemId);
+                return !(found && itemContains(container, found.item));
+            });
+            if (favoriteList.length !== before) saveFavorites();
         }
 
         async function restoreDefaultCollections() {
@@ -3514,6 +3821,11 @@
                 const count = countRequests(collection.item);
                 if (!confirm(`Delete the collection "${collection.info.name}" and all of its ${count} request(s)?\n\nYou can export it first if you may need it again.`)) return;
                 if (collection === currentCollection) closeRequestEditor();
+                removeFavoritesInside(collection, collection);
+                if (collectionEnvironmentMap[getCollectionId(collection)]) {
+                    delete collectionEnvironmentMap[getCollectionId(collection)];
+                    saveCollectionEnvironmentMap();
+                }
                 collectionList.splice(collectionList.indexOf(collection), 1);
                 await removeCollectionRecord(collection);
             } else {
@@ -3523,6 +3835,7 @@
                     : `Delete the request "${node.item.name}"?`;
                 if (!confirm(message)) return;
                 if (currentRequestItem && itemContains(node.item, currentRequestItem)) closeRequestEditor();
+                removeFavoritesInside(node.collection, node.item);
                 node.parentItems.splice(node.parentItems.indexOf(node.item), 1);
                 await persistCollection(node.collection);
             }
@@ -3538,10 +3851,33 @@
             export: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
             delete: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
         };
-        const treeActionTitles = { add: 'Add request', export: 'Export collection', delete: 'Delete' };
+        treeIcons.favorite = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/></svg>';
+        treeIcons.favoriteFilled = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/></svg>';
+        const treeActionTitles = { add: 'Add request', export: 'Export collection', delete: 'Delete', favorite: 'Add to Favorites' };
 
-        function treeActionButtons(actions) {
-            return `<span class="tree-actions">${actions.map(action => `<button type="button" class="tree-action${action === 'delete' ? ' is-danger' : ''}" data-tree-action="${action}" title="${treeActionTitles[action]}" aria-label="${treeActionTitles[action]}">${treeIcons[action]}</button>`).join('')}</span>`;
+        function treeActionButtons(actions, favorite = false) {
+            return `<span class="tree-actions">${actions.map(action => {
+                const isFavoriteAction = action === 'favorite' && favorite;
+                const title = isFavoriteAction ? 'Remove from Favorites' : treeActionTitles[action];
+                const icon = isFavoriteAction ? treeIcons.favoriteFilled : treeIcons[action];
+                return `<button type="button" class="tree-action${action === 'delete' ? ' is-danger' : ''}${isFavoriteAction ? ' is-favorite' : ''}" data-tree-action="${action}" title="${title}" aria-label="${title}">${icon}</button>`;
+            }).join('')}</span>`;
+        }
+
+        function requestRowHtml(node, depth, location = '') {
+            const { collection, item } = node;
+            const id = registerTreeNode(node);
+            const name = item.name || 'Untitled Request';
+            const favorite = isFavorite(collection, item);
+            const label = location
+                ? `<span class="tree-label"><span title="${escapeHtml(name)}">${escapeHtml(name)}</span><span class="tree-breadcrumb" title="${escapeHtml(location)}">${escapeHtml(location)}</span></span>`
+                : `<span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
+            return `<div class="tree-row tree-request${location ? ' tree-search-result' : ''}${item === currentRequestItem ? ' is-selected' : ''}" data-node-id="${id}" style="--depth:${depth}" role="treeitem">
+                ${methodBadge(item)}
+                ${label}
+                ${favorite ? `<span class="tree-star" title="Favorite">${treeIcons.favoriteFilled}</span>` : ''}
+                ${treeActionButtons(node.inFavorites ? ['favorite'] : ['favorite', 'delete'], favorite)}
+            </div>`;
         }
 
         function registerTreeNode(node) {
@@ -3572,13 +3908,7 @@
                     </div>`);
                     if (expanded) renderTreeItems(collection, item.item, depth + 1, html);
                 } else if (item.request !== undefined) {
-                    const id = registerTreeNode({ kind: 'request', collection, item, parentItems: items });
-                    const name = item.name || 'Untitled Request';
-                    html.push(`<div class="tree-row tree-request${item === currentRequestItem ? ' is-selected' : ''}" data-node-id="${id}" style="--depth:${depth}" role="treeitem">
-                        ${methodBadge(item)}
-                        <span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-                        ${treeActionButtons(['delete'])}
-                    </div>`);
+                    html.push(requestRowHtml({ kind: 'request', collection, item, parentItems: items }, depth));
                 }
             });
         }
@@ -3603,26 +3933,39 @@
                     if (!haystack.includes(query)) return;
                     total++;
                     if (total > limit) return;
-                    const id = registerTreeNode({ kind: 'request', collection, item, parentItems });
-                    const name = item.name || 'Untitled Request';
-                    const location = [collection.info.name, ...trail].join(' › ');
-                    html.push(`<div class="tree-row tree-request tree-search-result${item === currentRequestItem ? ' is-selected' : ''}" data-node-id="${id}" style="--depth:0" role="treeitem">
-                        ${methodBadge(item)}
-                        <span class="tree-label"><span title="${escapeHtml(name)}">${escapeHtml(name)}</span><span class="tree-breadcrumb" title="${escapeHtml(location)}">${escapeHtml(location)}</span></span>
-                        ${treeActionButtons(['delete'])}
-                    </div>`);
+                    html.push(requestRowHtml({ kind: 'request', collection, item, parentItems }, 0, [collection.info.name, ...trail].join(' › ')));
                 }));
                 if (!total) html.push('<div class="tree-empty">No requests match your search.</div>');
                 if (total > limit) html.push(`<div class="tree-empty">Showing the first ${limit} of ${total} matches. Refine your search to see more.</div>`);
             } else {
+                const favorites = getFavoriteEntries();
+                if (favorites.length) {
+                    const id = registerTreeNode({ kind: 'favorites' });
+                    html.push(`<div class="tree-row tree-collection tree-favorites" data-node-id="${id}" style="--depth:0" role="treeitem" aria-expanded="${favoritesExpanded}">
+                        <span class="tree-caret${favoritesExpanded ? ' is-open' : ''}">${treeIcons.caret}</span>
+                        <span class="tree-icon">${treeIcons.favoriteFilled}</span>
+                        <span class="tree-label">Favorites</span>
+                        <span class="tree-count">${favorites.length}</span>
+                    </div>`);
+                    if (favoritesExpanded) {
+                        favorites.forEach(entry => {
+                            const trail = findItemTrail(entry.collection.item, entry.item) || [];
+                            const location = [entry.collection.info.name, ...trail.map(folder => folder.name || 'Folder')].join(' › ');
+                            html.push(requestRowHtml({ kind: 'request', inFavorites: true, ...entry }, 1, location));
+                        });
+                    }
+                    html.push('<div class="tree-divider"></div>');
+                }
                 collectionList.forEach(collection => {
                     const id = registerTreeNode({ kind: 'collection', collection, item: collection, parentItems: null });
                     const expanded = expandedTreeNodes.has(collection);
                     const name = collection.info.name;
+                    const collectionEnvironment = getCollectionEnvironment(collection);
                     html.push(`<div class="tree-row tree-collection" data-node-id="${id}" style="--depth:0" role="treeitem" aria-expanded="${expanded}">
                         <span class="tree-caret${expanded ? ' is-open' : ''}">${treeIcons.caret}</span>
                         <span class="tree-icon">${treeIcons.collection}</span>
                         <span class="tree-label" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                        ${collectionEnvironment ? `<span class="tree-env-tag" title="Collection environment: ${escapeHtml(collectionEnvironment.name)}">${escapeHtml(collectionEnvironment.name)}</span>` : ''}
                         <span class="tree-count">${countRequests(collection.item)}</span>
                         ${treeActionButtons(['add', 'export', 'delete'])}
                     </div>`);
@@ -3644,6 +3987,12 @@
                 if (action === 'delete') deleteTreeNode(node);
                 else if (action === 'export') exportCollection(node.collection);
                 else if (action === 'add') addRequestTo(node.collection, node.item);
+                else if (action === 'favorite') toggleFavorite(node.collection, node.item);
+                return;
+            }
+            if (node.kind === 'favorites') {
+                favoritesExpanded = !favoritesExpanded;
+                renderCollectionTree();
                 return;
             }
             if (node.kind === 'request') {
@@ -3748,8 +4097,15 @@
             basicAuthPassword.value = '';
             if (bearerTokenInput) bearerTokenInput.value = '';
             if (apiTokenReference) apiTokenReference.value = '';
+            editorAuthDefaulted = false;
             if (!auth) {
-                currentAuthType = 'inherit';
+                // Nothing set on the request: show what the parents set, otherwise default to the environment's saved token.
+                if (getInheritedAuth(currentCollection, currentRequestItem).auth) {
+                    currentAuthType = 'inherit';
+                } else {
+                    currentAuthType = 'oauth2';
+                    editorAuthDefaulted = true;
+                }
             } else if (auth.type === 'noauth') {
                 currentAuthType = 'none';
             } else if (auth.type === 'basic') {
@@ -3774,6 +4130,8 @@
 
         function buildAuthFromEditor() {
             if (isUnsupportedOriginalAuth()) return editorOriginalAuth;
+            // The default "environment's token" choice is not written into the request unless the user changes the auth.
+            if (editorAuthDefaulted && !editorAuthChanged) return null;
             if (currentAuthType === 'inherit') return null;
             if (currentAuthType === 'basic') {
                 return { type: 'basic', basic: [
@@ -3810,7 +4168,7 @@
             if (auth.type === 'oauth2') {
                 const tokenName = getAuthParam(auth, 'tokenName');
                 if (tokenName) return `OAuth 2.0 with the saved token "${tokenName}"`;
-                return getAuthParam(auth, 'accessToken') ? 'OAuth 2.0 with a stored access token' : 'OAuth 2.0 without a saved token chosen';
+                return getAuthParam(auth, 'accessToken') ? 'OAuth 2.0 with a stored access token' : "OAuth 2.0 with the environment's token";
             }
             if (auth.type === 'bearer') return 'a Bearer token';
             if (auth.type === 'basic') return 'Basic auth';
@@ -3830,9 +4188,15 @@
                 return;
             }
             const inherited = getInheritedAuth(currentCollection, currentRequestItem);
-            authInheritText.textContent = inherited.auth
-                ? `Uses ${describeAuth(inherited.auth)} from "${inherited.source}".`
-                : 'No authorization is set on its folders or collection, so no Authorization header is sent. Choose a saved token for the whole collection below, or pick another option above.';
+            const environment = getEffectiveEnvironment();
+            const environmentToken = getEnvironmentToken(environment);
+            if (inherited.auth) {
+                authInheritText.textContent = `Uses ${describeAuth(inherited.auth)} from "${inherited.source}".`;
+            } else if (environmentToken) {
+                authInheritText.textContent = `No authorization is set on its folders or collection, so the token "${environmentToken.name}" linked to the environment "${environment.name}" is used.`;
+            } else {
+                authInheritText.textContent = 'No authorization is set on its folders or collection and no token is linked to the environment, so no Authorization header is sent. Link a token in Environments, choose one for the whole collection below, or pick another option above.';
+            }
             collectionAuthTokenSelect.innerHTML = '<option value="">No token (remove collection auth)</option>';
             tokenList.forEach(token => ensureSelectOption(collectionAuthTokenSelect, token.name));
             const collectionTokenName = currentCollection.auth && currentCollection.auth.type === 'oauth2' ? getAuthParam(currentCollection.auth, 'tokenName') : '';
@@ -3913,6 +4277,8 @@
         function openRequestEditor(collection, item) {
             currentCollection = collection;
             currentRequestItem = item;
+            renderCollectionEnvironmentSelect();
+            updateEnvironmentTokenOption();
             const request = item.request && typeof item.request === 'object' ? item.request : {};
             apiNameInput.value = item.name || '';
             const method = (request.method || 'GET').toString().toUpperCase();
@@ -4745,7 +5111,7 @@
         }
 
         function resolveRequestVars(value) {
-            const text = resolveEnvVars(value);
+            const text = resolveEnvVars(value, getEffectiveEnvironment());
             const variables = currentCollection && Array.isArray(currentCollection.variable) ? currentCollection.variable : [];
             if (!variables.length || !text.includes('{{')) return text;
             return text.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, name) => {
@@ -4765,7 +5131,8 @@
             let descriptor;
             if (currentAuthType === 'inherit') {
                 const { auth } = getInheritedAuth(currentCollection, currentRequestItem);
-                descriptor = { fromEditor: false, type: 'none' };
+                // Nothing inherited: fall back to the environment's token (sent only if one is linked).
+                descriptor = auth ? { fromEditor: false, type: 'none' } : { fromEditor: false, type: 'oauth2', tokenRef: '', accessToken: '' };
                 if (auth && auth.type === 'basic') descriptor = { type: 'basic', username: getAuthParam(auth, 'username'), password: getAuthParam(auth, 'password') };
                 else if (auth && auth.type === 'bearer') descriptor = { type: 'bearer', token: getAuthParam(auth, 'token') };
                 else if (auth && auth.type === 'oauth2') descriptor = { type: 'oauth2', tokenRef: getAuthParam(auth, 'tokenName'), accessToken: getAuthParam(auth, 'accessToken'), fromEditor: false };
@@ -4781,31 +5148,30 @@
             }
 
             if (descriptor.type === 'oauth2') {
-                if (descriptor.tokenRef) {
-                    const selectedToken = tokenList.find(token => (token.name || '').trim() === descriptor.tokenRef);
+                let tokenRef = descriptor.tokenRef;
+                if (!tokenRef && !descriptor.accessToken) {
+                    // No specific token: use the one linked to the environment in use (the collection's, else the website's).
+                    const environment = getEffectiveEnvironment();
+                    const environmentToken = getEnvironmentToken(environment);
+                    if (environmentToken) {
+                        tokenRef = environmentToken.name;
+                    } else if (descriptor.fromEditor) {
+                        alert(environment
+                            ? `No saved token is linked to the environment "${environment.name}". Link one in Environments, or choose a saved token for this request.`
+                            : 'No environment is selected, so there is no environment token to use. Select an environment, or choose a saved token for this request.');
+                        return false;
+                    }
+                }
+                if (tokenRef) {
+                    const selectedToken = tokenList.find(token => normalizeName(token.name) === normalizeName(tokenRef));
                     const tokenValue = getStoredTokenValue(selectedToken);
                     if (!selectedToken || !tokenValue) {
-                        alert(`The saved OAuth token "${descriptor.tokenRef}" does not have a value to send.`);
+                        alert(`The saved OAuth token "${tokenRef}" does not have a value to send. Generate it in the Tokens tab first.`);
                         return false;
                     }
                     headersMap['Authorization'] = `Bearer ${resolveRequestVars(tokenValue)}`;
                 } else if (descriptor.accessToken) {
                     headersMap['Authorization'] = `Bearer ${resolveRequestVars(descriptor.accessToken)}`;
-                } else if (descriptor.fromEditor) {
-                    const directToken = oauth2AccessToken ? oauth2AccessToken.value.trim() : '';
-                    if (directToken) {
-                        headersMap['Authorization'] = `Bearer ${directToken}`;
-                    } else {
-                        try {
-                            const token = await fetchOAuth2Token();
-                            if (token) {
-                                headersMap['Authorization'] = `Bearer ${token}`;
-                            }
-                        } catch (error) {
-                            alert(error.message);
-                            return false;
-                        }
-                    }
                 }
             } else if (descriptor.type === 'basic') {
                 const username = resolveRequestVars(descriptor.username);
@@ -4912,7 +5278,7 @@
             requestPreview.classList.remove('hidden');
 
             if (!/^https?:\/\//i.test(requestUrl)) {
-                alert(`The URL resolved to "${requestUrl}", which is not a full http(s) address.\n\nThe Webex collections use {{baseUrl}}. Activate an environment that defines baseUrl (for example https://webexapis.com/v1) in the top bar.`);
+                alert(`The URL resolved to "${requestUrl}", which is not a full http(s) address.\n\nThe Webex collections use {{baseUrl}} (Contact Center uses {{contact_center_base_url}}). Choose an environment that defines it for this collection, or in the top bar.`);
                 return;
             }
 
@@ -4965,6 +5331,12 @@
             await importCollectionFiles(files);
         });
         applyCollectionAuthBtn.addEventListener('click', applyCollectionAuth);
+        collectionEnvironmentSelect.addEventListener('change', () => {
+            if (currentCollection) setCollectionEnvironment(currentCollection, collectionEnvironmentSelect.value);
+        });
+        apiTokenReference.addEventListener('change', () => {
+            editorAuthChanged = true;
+        });
         apiUrlInput.addEventListener('input', () => renderPathVariables(readPathVariables()));
 
         if (pasteBearerTokenBtn) {
@@ -5136,6 +5508,8 @@
 
         const isOAuthCallbackLoad = window.location.search.includes('code=') || window.location.search.includes('error=');
         initVariableFields();
+        loadCollectionEnvironmentMap();
+        loadFavorites();
         loadEnvironments();
         renderEnvironmentTable();
         loadTokens();
